@@ -6,7 +6,6 @@
 <title>AR IP 夥伴 — 掃產品，喚醒你的角色</title>
 <meta name="description" content="用手機掃描產品，喚醒專屬 IP 角色！摸摸牠、餵牠吃點心，收集全部角色還會觸發隱藏劇情。免安裝 App，瀏覽器直接玩。">
 <link rel="canonical" href="https://ar-ip-pets.zeabur.app/">
-<!-- OG -->
 <meta property="og:type" content="website">
 <meta property="og:title" content="AR IP 夥伴 — 掃產品，喚醒你的角色">
 <meta property="og:description" content="掃描產品喚醒 3D 角色，養成互動 + 收集圖鑑 + 隱藏劇情。免安裝，手機瀏覽器直接玩。">
@@ -14,7 +13,6 @@
 <meta property="og:url" content="https://ar-ip-pets.zeabur.app/">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐰</text></svg>">
-<!-- JSON-LD -->
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"WebApplication","name":"AR IP 夥伴",
  "applicationCategory":"GameApplication","operatingSystem":"iOS, Android",
@@ -35,36 +33,51 @@ t.src=v;s=b.getElementsByTagName(e)[0];s.parentNode.insertBefore(t,s)}(window,
 document,'script','https://connect.facebook.net/en_US/fbevents.js');
 fbq('init','4979950938896019');fbq('track','PageView');
 </script>
-<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+<!-- 2-3 self-host，不吃 CDN -->
+<script src="vendor/aframe.min.js"></script>
+<script src="vendor/mindar-image-aframe.prod.js"></script>
 <style>
 :root { --brand-primary:#FF7FA5; --brand-dark:#4A3B47; --brand-bg:#FFF7FA; }
 * { margin:0; padding:0; box-sizing:border-box; }
 body { font-family:'Microsoft JhengHei','PingFang TC',sans-serif; overflow:hidden; background:#000; }
-/* ---- HUD ---- */
 .hud { position:fixed; z-index:20; }
 #topbar { top:0; left:0; right:0; display:flex; justify-content:space-between; align-items:center;
   padding:10px 14px; padding-top:calc(10px + env(safe-area-inset-top));
   background:linear-gradient(rgba(0,0,0,.45),transparent); color:#fff; }
 #topbar h1 { font-size:16px; font-weight:700; text-shadow:0 1px 4px rgba(0,0,0,.5); }
 .pill { border:none; border-radius:999px; padding:8px 14px; font-size:14px; font-weight:700;
-  background:#fff; color:var(--brand-dark); box-shadow:0 2px 8px rgba(0,0,0,.25); cursor:pointer; }
+  background:#fff; color:var(--brand-dark); box-shadow:0 2px 8px rgba(0,0,0,.25); cursor:pointer;
+  min-height:44px; }
 .pill.primary { background:var(--brand-primary); color:#fff; }
 #bottombar { bottom:0; left:0; right:0; padding:12px 14px;
   padding-bottom:calc(12px + env(safe-area-inset-bottom));
   display:flex; flex-direction:column; gap:10px; align-items:center; pointer-events:none; }
 #bottombar > * { pointer-events:auto; }
-/* 對話泡泡 */
 #bubble { display:none; max-width:520px; width:100%; background:#fff; border-radius:18px;
   padding:12px 16px; box-shadow:0 4px 16px rgba(0,0,0,.3); }
 #bubble .who { font-size:13px; font-weight:700; color:var(--brand-primary); margin-bottom:2px; }
 #bubble .line { font-size:16px; color:var(--brand-dark); line-height:1.5; }
 #bubble .meta { font-size:12px; color:#999; margin-top:6px; }
+#bubble .cta { display:none; margin-top:8px; }
+#bubble .cta a { display:inline-block; background:var(--brand-primary); color:#fff;
+  text-decoration:none; font-size:14px; font-weight:700; border-radius:999px; padding:8px 16px; }
 #actions { display:none; gap:10px; }
-/* 掃描提示 */
 #hint { display:none; background:rgba(0,0,0,.55); color:#fff; font-size:14px;
   border-radius:12px; padding:10px 16px; text-align:center; line-height:1.6; }
-/* 圖鑑 / 劇情 modal */
+#hint a { color:#fff; }
+/* 1-3 掃描框（四角括號 + 呼吸動畫） */
+#scanbox { display:none; position:fixed; z-index:15; top:50%; left:50%;
+  width:min(72vw, 340px); height:min(72vw, 340px); transform:translate(-50%,-55%); pointer-events:none; }
+#scanbox i { position:absolute; width:36px; height:36px; border:4px solid #fff; opacity:.9; }
+#scanbox i:nth-child(1) { top:0; left:0; border-right:none; border-bottom:none; border-radius:10px 0 0 0; }
+#scanbox i:nth-child(2) { top:0; right:0; border-left:none; border-bottom:none; border-radius:0 10px 0 0; }
+#scanbox i:nth-child(3) { bottom:0; left:0; border-right:none; border-top:none; border-radius:0 0 0 10px; }
+#scanbox i:nth-child(4) { bottom:0; right:0; border-left:none; border-top:none; border-radius:0 0 10px 0; }
+#scanbox .beam { position:absolute; left:8%; width:84%; height:3px; border:none;
+  background:linear-gradient(90deg,transparent,var(--brand-primary),transparent);
+  animation:beam 2s ease-in-out infinite; border-radius:3px; }
+@keyframes beam { 0%,100% { top:12%; } 50% { top:85%; } }
+@media (prefers-reduced-motion: reduce) { #scanbox .beam { animation:none; top:50%; } }
 .modal { display:none; position:fixed; inset:0; z-index:40; background:rgba(0,0,0,.65);
   align-items:center; justify-content:center; padding:20px; }
 .modal .card { background:var(--brand-bg); border-radius:20px; width:100%; max-width:480px;
@@ -73,23 +86,24 @@ body { font-family:'Microsoft JhengHei','PingFang TC',sans-serif; overflow:hidde
 .charrow { display:flex; align-items:center; gap:12px; background:#fff; border-radius:14px;
   padding:12px; margin-bottom:10px; }
 .charrow .dot { width:44px; height:44px; border-radius:50%; flex-shrink:0;
-  display:flex; align-items:center; justify-content:center; font-size:24px; }
+  display:flex; align-items:center; justify-content:center; font-size:24px; overflow:hidden; }
+.charrow .dot img { width:100%; height:100%; object-fit:contain; }
 .charrow .info { flex:1; }
 .charrow .info b { color:var(--brand-dark); font-size:15px; }
 .charrow .info p { color:#888; font-size:12px; margin-top:2px; }
 .charrow.locked { opacity:.45; filter:grayscale(1); }
 .lvl { font-size:12px; color:var(--brand-primary); font-weight:700; }
 .closebtn { width:100%; margin-top:6px; }
-/* 劇情播放 */
 #duo-lines { display:flex; flex-direction:column; gap:8px; }
-.duoline { background:#fff; border-radius:12px; padding:10px 14px; font-size:15px;
-  color:var(--brand-dark); }
+.duoline { background:#fff; border-radius:12px; padding:10px 14px; font-size:15px; color:var(--brand-dark); }
 .duoline b { color:var(--brand-primary); margin-right:6px; }
-/* toast */
 #toast { display:none; position:fixed; top:70px; left:50%; transform:translateX(-50%);
   z-index:50; background:var(--brand-primary); color:#fff; font-weight:700;
-  padding:10px 20px; border-radius:999px; box-shadow:0 4px 14px rgba(0,0,0,.3); font-size:15px; }
-footer.hud { display:none; }
+  padding:10px 20px; border-radius:999px; box-shadow:0 4px 14px rgba(0,0,0,.3); font-size:15px;
+  max-width:88vw; text-align:center; }
+#custombar { display:none; position:fixed; z-index:21; top:58px; left:50%; transform:translateX(-50%);
+  background:#4A3B47; color:#fff; font-size:12px; padding:6px 12px; border-radius:999px; }
+#custombar button { background:none; border:none; color:#FFB6C1; font-size:12px; cursor:pointer; text-decoration:underline; }
 </style>
 </head>
 <body>
@@ -97,16 +111,21 @@ footer.hud { display:none; }
 <div id="topbar" class="hud">
   <h1>🐰 AR IP 夥伴</h1>
   <div style="display:flex;gap:8px;">
-    <button class="pill" id="btn-book">📖 圖鑑 <span id="book-count"></span></button>
+    <button class="pill" id="btn-sound" aria-label="切換音效與語音">🔊</button>
+    <button class="pill" id="btn-book">📖 <span id="book-count"></span></button>
   </div>
 </div>
+<div id="custombar">🛠️ 自訂模式（此裝置） <button id="btn-clear-custom">清除</button></div>
+
+<div id="scanbox"><i></i><i></i><i></i><i></i><i class="beam"></i></div>
 
 <div id="bottombar" class="hud">
-  <div id="hint">📷 對準產品圖掃描看看！<br>（示範：用電腦開啟 <b>assets/demo-card.png</b> 讓手機掃）</div>
-  <div id="bubble">
+  <div id="hint">📷 相機啟動中…</div>
+  <div id="bubble" role="status" aria-live="polite">
     <div class="who"></div>
     <div class="line"></div>
     <div class="meta"></div>
+    <div class="cta"><a id="cta-link" href="#" target="_blank" rel="noopener">🛍️ 了解產品</a></div>
   </div>
   <div id="actions">
     <button class="pill primary" id="btn-talk">💬 說話</button>
@@ -114,19 +133,18 @@ footer.hud { display:none; }
   </div>
 </div>
 
-<div id="toast"></div>
+<div id="toast" role="status" aria-live="polite"></div>
 
-<!-- 圖鑑 -->
 <div class="modal" id="modal-book">
   <div class="card">
     <h2>📖 角色圖鑑</h2>
     <div id="book-list"></div>
     <button class="pill primary closebtn" id="btn-duo" style="display:none;">✨ 播放隱藏劇情</button>
+    <a class="pill closebtn" href="targets.html" style="display:block;text-align:center;text-decoration:none;line-height:28px;">🃏 開啟示範圖（給另一台裝置掃）</a>
     <button class="pill closebtn" data-close>關閉</button>
   </div>
 </div>
 
-<!-- 隱藏劇情 -->
 <div class="modal" id="modal-duo">
   <div class="card">
     <h2>✨ 隱藏劇情</h2>
@@ -135,78 +153,95 @@ footer.hud { display:none; }
   </div>
 </div>
 
-<a-scene mindar-image="imageTargetSrc: ./targets/demo-card.mind; maxTrack: 2; uiScanning: no; uiLoading: yes;"
-         color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights: true"
-         vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false"
-         embedded>
-  <a-camera position="0 0 0" look-controls="enabled: false"
-            cursor="fuse: false; rayOrigin: mouse"
-            raycaster="far: 10000; objects: .clickable"></a-camera>
-  <!-- 角色錨點由 JS 依 CHARACTERS 動態建立 -->
-</a-scene>
-
 <script src="characters.js"></script>
 <script>
-const sceneEl = document.querySelector('a-scene');
 const bubble = document.getElementById('bubble');
 const hint = document.getElementById('hint');
 const actions = document.getElementById('actions');
 const toast = document.getElementById('toast');
-let activeIds = [];        // 目前鏡頭裡追蹤到的角色
-let bubbleTimer = null;
+const scanbox = document.getElementById('scanbox');
+let activeIds = [];
+let bubbleTimer = null, factTimer = null, idleTimer = null;
 let duoPlayed = false;
-
-/* 依 CHARACTERS 建立 mindar anchor + 角色模型 */
-CHARACTERS.forEach(ch => {
-  const anchor = document.createElement('a-entity');
-  anchor.setAttribute('mindar-image-target', 'targetIndex: ' + ch.targetIndex);
-  const charRoot = buildCharacter(ch);
-  // 站在產品「旁邊」而不是蓋在產品上：偶數 target 站右側、奇數站左側
-  // （MindAR 座標：產品圖寬 = 1 單位，x ±0.85 剛好落在圖外緣）
-  const side = ch.targetIndex % 2 === 0 ? 1 : -1;
-  charRoot.setAttribute('scale', '1.1 1.1 1.1');
-  charRoot.setAttribute('position', (0.85 * side) + ' -0.35 0');
-  charRoot.setAttribute('rotation', '0 ' + (-18 * side) + ' 0'); // 微微面向產品
-  anchor.appendChild(charRoot);
-  sceneEl.appendChild(anchor);
-
-  anchor.addEventListener('targetFound', () => onFound(ch));
-  anchor.addEventListener('targetLost', () => onLost(ch));
-  charRoot.addEventListener('click', () => talk(ch));
-});
+let sceneEl = null;
 
 function showToast(msg) {
   toast.textContent = msg; toast.style.display = 'block';
-  setTimeout(() => toast.style.display = 'none', 2200);
+  setTimeout(() => toast.style.display = 'none', 2400);
 }
-function showBubble(who, line, meta) {
+function showBubble(who, line, meta, ctaUrl, chForVoice) {
   bubble.querySelector('.who').textContent = who;
   bubble.querySelector('.line').textContent = line;
   bubble.querySelector('.meta').textContent = meta || '';
+  const cta = bubble.querySelector('.cta');
+  if (ctaUrl) {
+    const u = ctaUrl + (ctaUrl.includes('?') ? '&' : '?') + 'utm_source=ar-ip-pets&utm_medium=ar';
+    document.getElementById('cta-link').href = u;
+    cta.style.display = 'block';
+  } else cta.style.display = 'none';
   bubble.style.display = 'block';
+  if (chForVoice) arpSpeak(chForVoice, line);
   clearTimeout(bubbleTimer);
-  bubbleTimer = setTimeout(() => bubble.style.display = 'none', 4000);
+  bubbleTimer = setTimeout(() => bubble.style.display = 'none', ctaUrl ? 7000 : 4500);
+}
+document.getElementById('cta-link').addEventListener('click', () => {
+  arpTrack('outbound_click', { link_url: document.getElementById('cta-link').href });
+});
+
+/* 1-3 掃描狀態機：ready → scanning 提示；久掃不到 → 加強提示 */
+function setScanning(on) {
+  scanbox.style.display = on ? 'block' : 'none';
+  clearTimeout(idleTimer);
+  if (on) {
+    hint.style.display = 'block';
+    hint.innerHTML = '📷 把<b>產品圖</b>放進框框裡<br><a href="targets.html" target="_blank">沒有示範圖？點我開啟</a>';
+    idleTimer = setTimeout(() => {
+      if (activeIds.length === 0) {
+        hint.innerHTML = '🤔 掃不到嗎？試試：<br>1️⃣ 距離 20～30 公分 2️⃣ 避免反光和昏暗<br>3️⃣ 圖要攤平、完整入鏡<br><a href="targets.html" target="_blank">開啟示範圖測試</a>';
+        arpTrack('scan_struggle', {});
+      }
+    }, 12000);
+  } else {
+    hint.style.display = 'none';
+  }
 }
 
 function onFound(ch) {
   if (!activeIds.includes(ch.id)) activeIds.push(ch.id);
-  // 登場動畫：從小彈出（easeOutBack 帶回彈感）
+  setScanning(false);
+  actions.style.display = 'flex';
+  arpBumpScan(ch.id);
+  arpSfx('found'); arpVibrate([30, 40, 60]);
   const rootEl = document.getElementById('char-' + ch.id);
   if (rootEl) {
     rootEl.removeAttribute('animation__spawn');
     rootEl.setAttribute('animation__spawn',
       'property: scale; from: 0.01 0.01 0.01; to: 1.1 1.1 1.1; dur: 550; easing: easeOutBack');
+    setTimeout(() => rootEl.setAttribute('scale', '1.1 1.1 1.1'), 700);
   }
-  hint.style.display = 'none';
-  actions.style.display = 'flex';
   const isNew = arpDiscover(ch.id);
   if (isNew) {
     showToast('🎉 收集到新夥伴：' + ch.name + '！');
     arpTrack('character_discovered', { character: ch.id });
+    const n = arpCollectedCount();
+    if (n === 2) {
+      arpTrack('collect_second', { character: ch.id }); /* 3-2 回購代理指標 */
+      setTimeout(() => showToast('✨ 集滿 2 隻，隱藏劇情解鎖！'), 2600);
+    }
+    if (n === CHARACTERS.length) arpTrack('collect_all', {});
   }
-  showBubble(ch.name, pickLine(ch.greet), isNew ? '✨ 新夥伴加入圖鑑！' : '');
+  showBubble(ch.name, pickLine(ch.greet), isNew ? '✨ 新夥伴加入圖鑑！' : '', '', ch);
+  /* 3-1 打完招呼後送一則產品小知識（有連結就帶 CTA） */
+  clearTimeout(factTimer);
+  if (ch.facts && ch.facts.length) {
+    factTimer = setTimeout(() => {
+      if (activeIds.includes(ch.id)) {
+        showBubble(ch.name, pickLine(ch.facts), '💡 小知識', ch.productUrl || '', ch);
+        arpTrack('product_fact_shown', { character: ch.id });
+      }
+    }, 5200);
+  }
   updateBookBadge();
-  // 兩隻同框 → 自動觸發隱藏劇情
   if (activeIds.length >= 2 && !duoPlayed) {
     duoPlayed = true;
     setTimeout(() => playDuo(activeIds[0], activeIds[1]), 1500);
@@ -216,7 +251,7 @@ function onLost(ch) {
   activeIds = activeIds.filter(id => id !== ch.id);
   if (activeIds.length === 0) {
     actions.style.display = 'none';
-    hint.style.display = 'block';
+    setScanning(true);
     duoPlayed = false;
   }
 }
@@ -227,36 +262,55 @@ function talk(ch) {
   ch = ch || currentChar(); if (!ch) return;
   const aff = arpAffection(ch.id, 1);
   charJump(ch.id);
-  showBubble(ch.name, pickLine(ch.taps), '💗 好感度 ' + aff + '（Lv.' + arpLevel(aff) + '）');
+  arpSfx('pop'); arpVibrate(40);
+  showBubble(ch.name, pickLine(ch.taps), '💗 好感度 ' + aff + '（Lv.' + arpLevel(aff) + '）', '', ch);
   arpTrack('character_tap', { character: ch.id, affection: aff });
+  /* 紙娃娃雛形：好感度 Lv.3 解鎖圍巾，角色外觀直接改變 */
+  if (arpLevel(aff) >= 3 && arpUnlockItem('scarf')) {
+    setTimeout(() => showToast('✨ 好感度 Lv.3！獲得配件「好感圍巾」'), 800);
+    CHARACTERS.forEach(applyAccessories);
+    arpTrack('item_unlock', { item: 'scarf' });
+  }
 }
 function feed(ch) {
   ch = ch || currentChar(); if (!ch) return;
   arpFeed(ch.id);
   charJump(ch.id);
+  arpSfx('yum'); arpVibrate([30, 30, 30]);
   const s = arpLoad().collected[ch.id];
-  showBubble(ch.name, pickLine(ch.feeds), '🍡 已餵食 ' + s.fed + ' 次｜💗 好感度 ' + s.affection);
+  showBubble(ch.name, pickLine(ch.feeds), '🍡 已餵食 ' + s.fed + ' 次｜💗 好感度 ' + s.affection, '', ch);
   arpTrack('character_feed', { character: ch.id });
 }
 document.getElementById('btn-talk').addEventListener('click', () => talk());
 document.getElementById('btn-feed').addEventListener('click', () => feed());
 
-/* ---- 圖鑑 ---- */
+/* 音效/語音開關 */
+const btnSound = document.getElementById('btn-sound');
+function renderSoundBtn() { btnSound.textContent = arpSoundOn() ? '🔊' : '🔇'; }
+btnSound.addEventListener('click', () => {
+  arpToggleSound(); renderSoundBtn();
+  if (!arpSoundOn()) { try { speechSynthesis.cancel(); } catch (e) {} }
+  arpTrack('toggle_sound', { on: arpSoundOn() });
+});
+
+/* 圖鑑 */
 function updateBookBadge() {
   document.getElementById('book-count').textContent =
     arpCollectedCount() + '/' + CHARACTERS.length;
 }
+const SPECIES_EMOJI = { bunny:'🐰', bear:'🐻', chick:'🐤', image:'🌟' };
 function renderBook() {
   const s = arpLoad();
   const list = document.getElementById('book-list');
   list.innerHTML = '';
-  const emoji = { bunny:'🐰', bear:'🐻', chick:'🐤' };
   CHARACTERS.forEach(ch => {
     const owned = s.collected[ch.id];
     const row = document.createElement('div');
     row.className = 'charrow' + (owned ? '' : ' locked');
+    const icon = (ch.species === 'image' && ch.imageSrc && owned)
+      ? '<img src="' + ch.imageSrc + '" alt="">' : (owned ? SPECIES_EMOJI[ch.species] || '🌟' : '❓');
     row.innerHTML =
-      '<div class="dot" style="background:' + ch.colors.body + '33">' + (owned ? emoji[ch.species] : '❓') + '</div>' +
+      '<div class="dot" style="background:' + (ch.colors ? ch.colors.body : '#eee') + '33">' + icon + '</div>' +
       '<div class="info"><b>' + (owned ? ch.name : '？？？') + '</b>' +
       '<p>' + (owned ? ch.intro : '掃描對應產品即可解鎖 — ' + ch.product) + '</p>' +
       (owned ? '<p class="lvl">💗 好感度 ' + owned.affection + '（Lv.' + arpLevel(owned.affection) + '）｜🍡 餵食 ' + owned.fed + ' 次</p>' : '') +
@@ -265,6 +319,15 @@ function renderBook() {
   });
   document.getElementById('btn-duo').style.display =
     arpCollectedCount() >= 2 ? 'block' : 'none';
+  /* 配件背包 */
+  const items = arpItems();
+  const bag = document.createElement('div');
+  bag.className = 'charrow';
+  bag.innerHTML = '<div class="dot" style="background:#FFE06633">🎒</div><div class="info">' +
+    '<b>配件 ' + items.length + '/' + ACCESSORIES.length + '</b><p>' +
+    ACCESSORIES.map(a => (items.includes(a.id) ? '✅ ' : '🔒 ') + a.name + '（' + a.desc + '）').join('<br>') +
+    '</p></div>';
+  list.appendChild(bag);
 }
 document.getElementById('btn-book').addEventListener('click', () => {
   renderBook();
@@ -272,7 +335,7 @@ document.getElementById('btn-book').addEventListener('click', () => {
   arpTrack('open_book', { collected: arpCollectedCount() });
 });
 
-/* ---- 隱藏劇情 ---- */
+/* 隱藏劇情 */
 function playDuo(idA, idB) {
   let script = idA && idB ? duoScriptFor(idA, idB) : null;
   if (!script) {
@@ -286,11 +349,13 @@ function playDuo(idA, idB) {
   document.getElementById('modal-duo').style.display = 'flex';
   script.lines.forEach(([who, text], i) => {
     setTimeout(() => {
+      const c = charById(who);
       const d = document.createElement('div');
       d.className = 'duoline';
-      d.innerHTML = '<b>' + charById(who).name + '</b>' + text;
+      d.innerHTML = '<b>' + c.name + '</b>' + text;
       box.appendChild(d);
-    }, i * 900);
+      arpSpeak(c, text);
+    }, i * 2200);
   });
   arpTrack('duo_scene', { pair: script.pair.join('_') });
 }
@@ -299,12 +364,74 @@ document.getElementById('btn-duo').addEventListener('click', () => playDuo());
 document.querySelectorAll('[data-close]').forEach(b =>
   b.addEventListener('click', e => e.target.closest('.modal').style.display = 'none'));
 
-/* 初始 */
-hint.style.display = 'block';
-updateBookBadge();
-sceneEl.addEventListener('arError', () => {
-  hint.innerHTML = '⚠️ 無法啟動相機。請確認：<br>1. 使用 https 網址開啟 2. 已允許相機權限<br>或改開 <a href="demo.html" style="color:#fff;text-decoration:underline;">無鏡頭展示模式</a>';
-});
+/* ---- 啟動：載入設定 → 動態建 AR 場景（支援後台存的自訂 targets） ---- */
+(async function init() {
+  await arpLoadConfig();
+  renderSoundBtn();
+  updateBookBadge();
+  if (arpIsCustomMode()) document.getElementById('custombar').style.display = 'block';
+  document.getElementById('btn-clear-custom').addEventListener('click', () => {
+    arpClearCustom(); location.reload();
+  });
+
+  sceneEl = document.createElement('a-scene');
+  sceneEl.setAttribute('mindar-image',
+    'imageTargetSrc: ' + arpTargetSrc() + '; maxTrack: 2; uiScanning: no; uiLoading: yes;');
+  sceneEl.setAttribute('color-space', 'sRGB');
+  sceneEl.setAttribute('renderer', 'colorManagement: true, physicallyCorrectLights: true');
+  sceneEl.setAttribute('vr-mode-ui', 'enabled: false');
+  sceneEl.setAttribute('device-orientation-permission-ui', 'enabled: false');
+
+  const cam = document.createElement('a-camera');
+  cam.setAttribute('position', '0 0 0');
+  cam.setAttribute('look-controls', 'enabled: false');
+  cam.setAttribute('cursor', 'fuse: false; rayOrigin: mouse');
+  cam.setAttribute('raycaster', 'far: 10000; objects: .clickable');
+  sceneEl.appendChild(cam);
+
+  CHARACTERS.forEach(ch => {
+    const anchor = document.createElement('a-entity');
+    anchor.setAttribute('mindar-image-target', 'targetIndex: ' + ch.targetIndex);
+    const charRoot = buildCharacter(ch);
+    // 站在產品「旁邊」：偶數 target 站右、奇數站左（產品圖寬=1 單位，±0.55 剛好貼著圖緣）
+    const side = ch.targetIndex % 2 === 0 ? 1 : -1;
+    charRoot.setAttribute('scale', '1.1 1.1 1.1');
+    charRoot.setAttribute('position', (0.55 * side) + ' -0.35 0');
+    charRoot.setAttribute('rotation', '0 ' + (-15 * side) + ' 0');
+    anchor.appendChild(charRoot);
+    sceneEl.appendChild(anchor);
+    anchor.addEventListener('targetFound', () => onFound(ch));
+    anchor.addEventListener('targetLost', () => onLost(ch));
+    charRoot.addEventListener('click', () => talk(ch));
+  });
+
+  sceneEl.addEventListener('arReady', () => { setScanning(true); arpTrack('ar_ready', {}); });
+  sceneEl.addEventListener('arError', () => {
+    scanbox.style.display = 'none';
+    hint.style.display = 'block';
+    hint.innerHTML = '⚠️ 無法啟動相機。請確認：<br>1. 使用 https 網址開啟 2. 已允許相機權限<br>或改開 <a href="demo.html">無鏡頭展示模式</a>';
+    arpTrack('ar_error', {});
+  });
+  document.body.appendChild(sceneEl);
+  hint.style.display = 'block';
+
+  /* 已解鎖配件掛上角色 */
+  CHARACTERS.forEach(applyAccessories);
+
+  /* 掃購買憑證/序號兌換配件：?gift=CODE（雛形，正式版走後端驗證防重複兌換） */
+  const giftCode = new URLSearchParams(location.search).get('gift');
+  if (giftCode) {
+    const acc = ACCESSORIES.find(a => a.code && a.code.toUpperCase() === giftCode.toUpperCase());
+    if (acc) {
+      const isNew = arpUnlockItem(acc.id);
+      setTimeout(() => showToast(isNew ? '🎁 獲得新配件：' + acc.name + '！' : 'ℹ️ 配件已擁有：' + acc.name), 800);
+      CHARACTERS.forEach(applyAccessories);
+      arpTrack('gift_redeem', { item: acc.id, is_new: isNew });
+    } else {
+      setTimeout(() => showToast('❓ 序號無效'), 800);
+    }
+  }
+})();
 </script>
 </body>
 </html>

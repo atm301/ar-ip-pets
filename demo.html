@@ -13,7 +13,7 @@
 window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
 gtag('js',new Date());gtag('config','G-RDJD1YVHR7');
 </script>
-<script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+<script src="vendor/aframe.min.js"></script>
 <style>
 :root { --brand-primary:#FF7FA5; --brand-dark:#4A3B47; --brand-bg:#FFF7FA; }
 * { margin:0; padding:0; box-sizing:border-box; }
@@ -39,7 +39,7 @@ body { font-family:'Microsoft JhengHei','PingFang TC',sans-serif; overflow:hidde
   <h1>🎬 展示模式（免鏡頭）</h1>
   <a class="pill" href="index.html">📷 回 AR 掃描</a>
 </div>
-<div id="bubble"><div class="who"></div><div class="line"></div><div class="meta"></div></div>
+<div id="bubble" role="status" aria-live="polite"><div class="who"></div><div class="line"></div><div class="meta"></div></div>
 <div id="tip">👆 點角色跟牠互動（此模式不需要相機）</div>
 
 <a-scene vr-mode-ui="enabled: false" background="color: #FFE9F0">
@@ -58,21 +58,27 @@ const stage = document.getElementById('stage');
 const bubble = document.getElementById('bubble');
 let bubbleTimer = null;
 
-const POS = ['-0.9 0 0', '0 0 0', '0.9 0 0'];
-CHARACTERS.forEach((ch, i) => {
-  const wrap = document.createElement('a-entity');
-  wrap.setAttribute('position', POS[i] || (i + ' 0 0'));
-  const c = buildCharacter(ch);
-  wrap.appendChild(c);
-  stage.appendChild(wrap);
-  arpDiscover(ch.id); // 展示模式直接全解鎖
-  c.addEventListener('click', () => {
-    const aff = arpAffection(ch.id, 1);
-    charJump(ch.id);
-    showBubble(ch.name, pickLine(ch.taps), '💗 好感度 ' + aff + '（Lv.' + arpLevel(aff) + '）');
-    arpTrack('demo_character_tap', { character: ch.id });
+(async function () {
+  await arpLoadConfig();
+  const POS = ['-0.9 0 0', '0 0 0', '0.9 0 0'];
+  CHARACTERS.forEach((ch, i) => {
+    const wrap = document.createElement('a-entity');
+    wrap.setAttribute('position', POS[i] || (i + ' 0 0'));
+    const c = buildCharacter(ch);
+    wrap.appendChild(c);
+    stage.appendChild(wrap);
+    arpDiscover(ch.id); // 展示模式直接全解鎖
+    applyAccessories(ch);
+    c.addEventListener('click', () => {
+      const aff = arpAffection(ch.id, 1);
+      charJump(ch.id);
+      arpSfx('pop'); arpVibrate(40);
+      showBubble(ch.name, pickLine(ch.taps), '💗 好感度 ' + aff + '（Lv.' + arpLevel(aff) + '）');
+      arpSpeak(ch, bubble.querySelector('.line').textContent);
+      arpTrack('demo_character_tap', { character: ch.id });
+    });
   });
-});
+})();
 
 function showBubble(who, line, meta) {
   bubble.querySelector('.who').textContent = who;

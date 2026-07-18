@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>品牌後台 — AR IP 夥伴</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🛠️</text></svg>">
+<style>
+:root { --brand-primary:#FF7FA5; --brand-dark:#4A3B47; --brand-bg:#FFF7FA; --ok:#2f9e44; --mid:#e8930c; --bad:#e03131; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Microsoft JhengHei','PingFang TC',sans-serif; background:var(--brand-bg); color:var(--brand-dark); }
+header { background:#fff; padding:14px 18px; box-shadow:0 1px 6px rgba(0,0,0,.06);
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; }
+header h1 { font-size:18px; }
+header nav a { color:var(--brand-primary); font-size:13px; text-decoration:none; margin-left:10px; }
+.tabs { display:flex; gap:6px; padding:12px 16px 0; max-width:960px; margin:0 auto; flex-wrap:wrap; }
+.tabs button { border:none; border-radius:12px 12px 0 0; padding:10px 16px; font-size:14px; font-weight:700;
+  background:#f0e0e7; color:#987f8f; cursor:pointer; min-height:44px; }
+.tabs button.on { background:#fff; color:var(--brand-dark); }
+main { max-width:960px; margin:0 auto; padding:0 16px 60px; }
+.panel { display:none; background:#fff; border-radius:0 14px 14px 14px; padding:18px; }
+.panel.on { display:block; }
+h2 { font-size:16px; margin:14px 0 8px; }
+h2:first-child { margin-top:0; }
+p.help { font-size:13px; color:#987f8f; line-height:1.7; margin:4px 0 10px; }
+label { font-size:13px; font-weight:700; display:block; margin:10px 0 4px; }
+input[type=text], input[type=url], textarea, select { width:100%; border:1px solid #ecd8e0; border-radius:10px;
+  padding:9px 12px; font-size:14px; font-family:inherit; background:#fffafc; }
+textarea { min-height:74px; line-height:1.6; }
+.btn { border:none; border-radius:999px; padding:10px 20px; font-size:14px; font-weight:700;
+  background:var(--brand-primary); color:#fff; cursor:pointer; min-height:44px; }
+.btn.ghost { background:#f0e0e7; color:var(--brand-dark); }
+.btn:disabled { opacity:.5; cursor:not-allowed; }
+.row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+.imgcard { display:flex; gap:12px; background:#fffafc; border:1px solid #f5dfe8; border-radius:12px;
+  padding:10px; margin:8px 0; align-items:center; }
+.imgcard img { width:72px; height:96px; object-fit:cover; border-radius:8px; }
+.imgcard .inf { flex:1; font-size:13px; line-height:1.7; }
+.score { font-weight:700; }
+.score.ok { color:var(--ok); } .score.mid { color:var(--mid); } .score.bad { color:var(--bad); }
+progress { width:100%; height:14px; }
+.chcard { background:#fffafc; border:1px solid #f5dfe8; border-radius:12px; padding:14px; margin:10px 0; }
+.chcard .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:0 14px; }
+@media (max-width:640px) { .chcard .grid2 { grid-template-columns:1fr; } }
+.preview2d { width:120px; height:120px; object-fit:contain; display:block; margin-top:6px;
+  animation:bob 1.2s ease-in-out infinite alternate; cursor:pointer; }
+.preview2d:active { animation:squash .25s ease; }
+@keyframes bob { from { transform:translateY(0); } to { transform:translateY(-8px); } }
+@keyframes squash { 0% { transform:scale(1,1); } 50% { transform:scale(1.15,.85); } 100% { transform:scale(1,1); } }
+table { width:100%; border-collapse:collapse; font-size:14px; }
+th, td { text-align:left; padding:8px 10px; border-bottom:1px solid #f5dfe8; }
+.note { background:#fff4e6; border-radius:10px; padding:10px 14px; font-size:13px; line-height:1.7; margin:10px 0; }
+#toast { display:none; position:fixed; top:16px; left:50%; transform:translateX(-50%); z-index:99;
+  background:var(--brand-dark); color:#fff; font-size:14px; font-weight:700; padding:10px 20px; border-radius:999px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>🛠️ 品牌後台 — AR IP 夥伴</h1>
+  <nav><a href="index.html">📷 前台</a><a href="targets.html">🃏 示範圖</a><a href="demo.html">🎬 展示</a></nav>
+</header>
+<div class="tabs">
+  <button class="on" data-tab="t1">① 品牌與產品圖</button>
+  <button data-tab="t2">② IP 角色設定</button>
+  <button data-tab="t3">③ 數據</button>
+</div>
+<main>
+
+<!-- ① 品牌 + 產品圖上傳 + 品質評分 + 編譯 -->
+<section class="panel on" id="t1">
+  <h2>品牌資料</h2>
+  <label>品牌名稱</label>
+  <input type="text" id="brand-name" placeholder="例如：小圭選物">
+  <label>品牌故事（角色會用這些內容跟顧客聊天）</label>
+  <textarea id="brand-story" placeholder="說說你的品牌是怎麼開始的、想帶給顧客什麼…"></textarea>
+
+  <h2>產品圖上傳與辨識品質檢測</h2>
+  <p class="help">每個產品一張<b>正面、光線均勻、無反光</b>的照片。上傳後系統會先評分（特徵點越多辨識越穩），
+  「不佳」的圖建議換角度重拍或選圖案更複雜的包裝面。</p>
+  <input type="file" id="file-products" accept="image/*" multiple>
+  <div id="img-list"></div>
+  <div class="row" style="margin-top:10px;">
+    <button class="btn" id="btn-compile" disabled>⚙️ 編譯辨識檔（targets.mind）</button>
+    <button class="btn ghost" id="btn-save-mind" disabled>📲 存到此裝置測試</button>
+    <button class="btn ghost" id="btn-dl-mind" disabled>⬇️ 下載 targets.mind</button>
+  </div>
+  <div id="compile-progress" style="display:none;margin-top:10px;">
+    <progress id="prog" max="100" value="0"></progress>
+    <p class="help" id="prog-text">編譯中…（手機約需 1～3 分鐘，請勿關閉頁面）</p>
+  </div>
+  <div class="note">📌 流程：上傳產品圖 → 編譯 → 「存到此裝置」後直接開 <a href="index.html">前台</a> 用這支手機測試；
+  確認 OK 再「下載 targets.mind」交給工程師放進 <code>targets/</code> 正式上線。</div>
+</section>
+
+<!-- ② 角色設定 -->
+<section class="panel" id="t2">
+  <h2>IP 角色設定（每個產品對應一隻）</h2>
+  <p class="help">可直接改內建三隻的台詞，或上傳你的 <b>2D 角色圖（去背 PNG 最佳）</b>——系統會自動做成「會浮動、會跳、可點擊互動」的 2.5D 可動角色（正式版將接 AI 自動轉 3D 模型＋骨架動畫）。台詞一行一句。</p>
+  <div id="ch-list"></div>
+  <div class="row" style="margin-top:12px;">
+    <button class="btn ghost" id="btn-add-ch">➕ 新增角色</button>
+    <button class="btn" id="btn-save-chars">📲 存到此裝置測試</button>
+    <button class="btn ghost" id="btn-dl-chars">⬇️ 下載 characters.json</button>
+    <button class="btn ghost" id="btn-reset-chars">↩️ 還原預設</button>
+  </div>
+  <div class="note">📌 「存到此裝置」= 立即在這支手機的前台生效（自訂模式）；「下載 characters.json」= 交給工程師 push 上線，全部使用者生效。</div>
+</section>
+
+<!-- ③ 數據 -->
+<section class="panel" id="t3">
+  <h2>掃描數據（此裝置）</h2>
+  <p class="help">各產品在<b>這台裝置</b>被掃到的次數。全站數據請看
+  <a href="https://analytics.google.com/" target="_blank" rel="noopener">GA4</a>（事件：character_discovered、character_tap、collect_second、product_fact_shown、outbound_click）。</p>
+  <table id="stats-table"><thead><tr><th>角色 / 產品</th><th>掃描次數</th><th>好感度</th><th>餵食</th></tr></thead><tbody></tbody></table>
+  <div class="row" style="margin-top:12px;">
+    <button class="btn ghost" id="btn-clear-state">🗑️ 清除此裝置遊戲進度</button>
+  </div>
+</section>
+</main>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script src="characters.js"></script>
+<script type="module">
+import './vendor/mindar-image.prod.js';
+
+const $ = id => document.getElementById(id);
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.style.display = 'block'; setTimeout(() => t.style.display = 'none', 2600); }
+
+/* tabs */
+document.querySelectorAll('.tabs button').forEach(b => b.addEventListener('click', () => {
+  document.querySelectorAll('.tabs button').forEach(x => x.classList.remove('on'));
+  document.querySelectorAll('.panel').forEach(x => x.classList.remove('on'));
+  b.classList.add('on'); $(b.dataset.tab).classList.add('on');
+}));
+
+/* ---------- ① 產品圖：品質評分（Sobel 邊緣密度，快速預檢）＋ 編譯 ---------- */
+const state = { images: [], mindBuffer: null };
+
+function qualityScore(img) {
+  const W = 200, H = Math.round(200 * img.height / img.width);
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const cx = cv.getContext('2d');
+  cx.drawImage(img, 0, 0, W, H);
+  const d = cx.getImageData(0, 0, W, H).data;
+  const gray = new Float32Array(W * H);
+  for (let i = 0; i < W * H; i++) gray[i] = d[i*4] * 0.299 + d[i*4+1] * 0.587 + d[i*4+2] * 0.114;
+  let edges = 0;
+  for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
+    const i = y * W + x;
+    const gx = -gray[i-W-1] - 2*gray[i-1] - gray[i+W-1] + gray[i-W+1] + 2*gray[i+1] + gray[i+W+1];
+    const gy = -gray[i-W-1] - 2*gray[i-W] - gray[i-W+1] + gray[i+W-1] + 2*gray[i+W] + gray[i+W+1];
+    if (Math.sqrt(gx*gx + gy*gy) > 120) edges++;
+  }
+  return Math.round(edges / (W * H) * 1000) / 10; // 邊緣密度 %
+}
+function scoreLabel(s) {
+  if (s >= 10) return ['ok', '👍 良好（特徵充足，辨識穩定）'];
+  if (s >= 5) return ['mid', '🤏 普通（可用，建議選圖案更複雜的面）'];
+  return ['bad', '⚠️ 不佳（太素或反光，建議重拍）'];
+}
+
+$('file-products').addEventListener('change', async e => {
+  state.images = []; $('img-list').innerHTML = '';
+  for (const f of e.target.files) {
+    const url = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(f); });
+    const img = await new Promise(r => { const im = new Image(); im.onload = () => r(im); im.src = url; });
+    const s = qualityScore(img);
+    const [cls, txt] = scoreLabel(s);
+    state.images.push({ name: f.name, dataURL: url, img, score: s });
+    const idx = state.images.length - 1;
+    const div = document.createElement('div');
+    div.className = 'imgcard';
+    div.innerHTML = '<img src="' + url + '" alt=""><div class="inf"><b>#' + idx + '（targetIndex: ' + idx + '）</b> ' + f.name +
+      '<br>邊緣密度 ' + s + '% → <span class="score ' + cls + '">' + txt + '</span></div>';
+    $('img-list').appendChild(div);
+  }
+  const ready = state.images.length > 0;
+  $('btn-compile').disabled = !ready;
+  if (ready) toast('已載入 ' + state.images.length + ' 張，順序 = targetIndex');
+});
+
+$('btn-compile').addEventListener('click', async () => {
+  $('btn-compile').disabled = true;
+  $('compile-progress').style.display = 'block';
+  try {
+    const compiler = new window.MINDAR.IMAGE.Compiler();
+    await compiler.compileImageTargets(state.images.map(x => x.img), p => {
+      $('prog').value = p; $('prog-text').textContent = '編譯中… ' + p.toFixed(1) + '%';
+    });
+    state.mindBuffer = await compiler.exportData();
+    $('prog-text').textContent = '✅ 編譯完成！大小 ' + Math.round(state.mindBuffer.byteLength / 1024) + ' KB';
+    $('btn-save-mind').disabled = false;
+    $('btn-dl-mind').disabled = false;
+  } catch (err) {
+    $('prog-text').textContent = '❌ 編譯失敗：' + err.message;
+  }
+  $('btn-compile').disabled = false;
+});
+$('btn-dl-mind').addEventListener('click', () => {
+  const blob = new Blob([state.mindBuffer]);
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'targets.mind'; a.click();
+});
+$('btn-save-mind').addEventListener('click', () => {
+  const blob = new Blob([state.mindBuffer]);
+  const fr = new FileReader();
+  fr.onload = () => {
+    try {
+      localStorage.setItem('arp_custom_mind', fr.result);
+      toast('✅ 已存到此裝置，開前台即用你的產品圖辨識');
+    } catch (e) { toast('❌ 檔案太大存不下，請減少張數或改用下載'); }
+  };
+  fr.readAsDataURL(blob);
+});
+
+/* ---------- ② 角色設定 ---------- */
+let chars = [];
+let brand = { name: '', story: '' };
+const SPECIES = { bunny: '🐰 兔子', bear: '🐻 小熊', chick: '🐤 小雞', image: '🌟 2D 圖片（可動化）' };
+
+async function loadChars() {
+  const cfg = await arpLoadConfig();
+  chars = JSON.parse(JSON.stringify(CHARACTERS));
+  if (cfg.brand) { brand = cfg.brand; $('brand-name').value = brand.name || ''; $('brand-story').value = brand.story || ''; }
+  renderChars();
+}
+function renderChars() {
+  const list = $('ch-list'); list.innerHTML = '';
+  chars.forEach((ch, i) => {
+    const card = document.createElement('div');
+    card.className = 'chcard';
+    card.innerHTML =
+      '<div class="grid2">' +
+      '<div><label>角色名</label><input type="text" data-f="name" data-i="' + i + '" value="' + (ch.name || '') + '"></div>' +
+      '<div><label>對應產品（targetIndex: ' + ch.targetIndex + '）</label><input type="text" data-f="product" data-i="' + i + '" value="' + (ch.product || '') + '"></div>' +
+      '<div><label>外型</label><select data-f="species" data-i="' + i + '">' +
+        Object.keys(SPECIES).map(k => '<option value="' + k + '"' + (ch.species === k ? ' selected' : '') + '>' + SPECIES[k] + '</option>').join('') +
+      '</select></div>' +
+      '<div><label>產品連結（角色會附「了解產品」按鈕）</label><input type="url" data-f="productUrl" data-i="' + i + '" value="' + (ch.productUrl || '') + '"></div>' +
+      '</div>' +
+      '<div data-2d="' + i + '" style="display:' + (ch.species === 'image' ? 'block' : 'none') + ';">' +
+      '<label>2D 角色圖（去背 PNG）→ 自動可動化</label>' +
+      '<input type="file" accept="image/png,image/webp" data-f="imageSrc" data-i="' + i + '">' +
+      (ch.imageSrc ? '<img class="preview2d" src="' + ch.imageSrc + '" alt="2D 角色預覽" title="點我看擠壓動畫">' : '') +
+      '</div>' +
+      '<label>打招呼台詞（一行一句）</label><textarea data-f="greet" data-i="' + i + '">' + (ch.greet || []).join('\n') + '</textarea>' +
+      '<label>被摸台詞</label><textarea data-f="taps" data-i="' + i + '">' + (ch.taps || []).join('\n') + '</textarea>' +
+      '<label>餵食台詞</label><textarea data-f="feeds" data-i="' + i + '">' + (ch.feeds || []).join('\n') + '</textarea>' +
+      '<label>產品小知識（會帶購買按鈕）</label><textarea data-f="facts" data-i="' + i + '">' + (ch.facts || []).join('\n') + '</textarea>' +
+      '<div class="row"><div style="flex:1;"><label>聲音高低（' + ((ch.voice && ch.voice.pitch) || 1.2) + '）</label>' +
+      '<input type="range" min="0.3" max="2" step="0.1" data-f="pitch" data-i="' + i + '" value="' + ((ch.voice && ch.voice.pitch) || 1.2) + '"></div>' +
+      '<div style="flex:1;"><label>語速（' + ((ch.voice && ch.voice.rate) || 1.05) + '）</label>' +
+      '<input type="range" min="0.5" max="2" step="0.05" data-f="rate" data-i="' + i + '" value="' + ((ch.voice && ch.voice.rate) || 1.05) + '"></div>' +
+      '<button class="btn ghost" data-say="' + i + '" type="button">🔈 試聽</button>' +
+      '<button class="btn ghost" data-del="' + i + '" type="button">🗑️</button></div>';
+    list.appendChild(card);
+  });
+}
+$('ch-list').addEventListener('input', async e => {
+  const f = e.target.dataset.f, i = +e.target.dataset.i;
+  if (f === undefined || isNaN(i)) return;
+  const ch = chars[i];
+  if (['greet','taps','feeds','facts'].includes(f)) ch[f] = e.target.value.split('\n').map(s => s.trim()).filter(Boolean);
+  else if (f === 'pitch' || f === 'rate') { ch.voice = ch.voice || {}; ch.voice[f] = +e.target.value; }
+  else if (f === 'imageSrc') {
+    const file = e.target.files[0]; if (!file) return;
+    ch.imageSrc = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(file); });
+    renderChars();
+  } else if (f === 'species') { ch.species = e.target.value; renderChars(); }
+  else ch[f] = e.target.value;
+});
+$('ch-list').addEventListener('click', e => {
+  if (e.target.dataset.say !== undefined) {
+    const ch = chars[+e.target.dataset.say];
+    arpSpeak(ch, pickLine(ch.greet) || '哈囉，我是' + ch.name);
+  }
+  if (e.target.dataset.del !== undefined) {
+    chars.splice(+e.target.dataset.del, 1);
+    chars.forEach((c, idx) => c.targetIndex = idx);
+    renderChars();
+  }
+});
+$('btn-add-ch').addEventListener('click', () => {
+  chars.push({ id: 'ch' + Date.now(), name: '新角色', species: 'image', product: '產品 ' + (chars.length + 1),
+    productUrl: '', targetIndex: chars.length, colors: { body: '#FFC0CB', belly: '#FFF3F6', accent: '#FF7FA5' },
+    intro: '', voice: { pitch: 1.2, rate: 1.05 }, greet: ['哈囉！'], taps: ['嘿嘿～'], feeds: ['好好吃！'], facts: [] });
+  renderChars();
+});
+function exportConfig() {
+  brand = { name: $('brand-name').value.trim(), story: $('brand-story').value.trim() };
+  return { brand, characters: chars, duoScripts: DUO_SCRIPTS };
+}
+$('btn-save-chars').addEventListener('click', () => {
+  try {
+    localStorage.setItem('arp_custom_chars', JSON.stringify(exportConfig()));
+    toast('✅ 已存到此裝置，前台立即生效');
+  } catch (e) { toast('❌ 圖片太大存不下，請壓縮 2D 圖'); }
+});
+$('btn-dl-chars').addEventListener('click', () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(exportConfig(), null, 2)], { type: 'application/json' }));
+  a.download = 'characters.json'; a.click();
+});
+$('btn-reset-chars').addEventListener('click', async () => {
+  localStorage.removeItem('arp_custom_chars');
+  await loadChars(); toast('已還原為預設角色');
+});
+
+/* ---------- ③ 數據 ---------- */
+function renderStats() {
+  const tb = document.querySelector('#stats-table tbody'); tb.innerHTML = '';
+  const stats = arpStats(), s = arpLoad();
+  chars.forEach(ch => {
+    const o = s.collected[ch.id] || {};
+    tb.innerHTML += '<tr><td>' + ch.name + '<br><small>' + (ch.product || '') + '</small></td>' +
+      '<td>' + (stats[ch.id] || 0) + '</td><td>' + (o.affection || 0) + '</td><td>' + (o.fed || 0) + '</td></tr>';
+  });
+}
+$('btn-clear-state').addEventListener('click', () => {
+  localStorage.removeItem('arp_state_v1'); localStorage.removeItem('arp_stats');
+  renderStats(); toast('已清除此裝置遊戲進度');
+});
+document.querySelector('[data-tab=t3]').addEventListener('click', renderStats);
+
+loadChars();
+</script>
+</body>
+</html>
