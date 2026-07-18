@@ -89,5 +89,6 @@ function showBubble(who, line, meta) {
   bubbleTimer = setTimeout(() => bubble.style.display = 'none', 4000);
 }
 </script>
+<script>if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');</script>
 </body>
 </html>

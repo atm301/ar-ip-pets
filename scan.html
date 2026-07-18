@@ -151,5 +151,6 @@ navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
     document.getElementById('tip').innerHTML = '⚠️ 無法啟動相機（需 https + 相機權限）。<br>也可以直接開含序號的網址：/?gift=HAT2026';
   });
 </script>
+<script>if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');</script>
 </body>
 </html>
