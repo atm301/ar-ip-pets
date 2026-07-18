@@ -57,7 +57,7 @@ const SPECIES_EMOJI = { bunny:'🐰', bear:'🐻', chick:'🐤', image:'🌟' };
   await arpLoadConfig();
   const grid = document.getElementById('grid');
   CHARACTERS.forEach((ch, i) => {
-    const img = DEMO_IMGS[ch.targetIndex] || DEMO_IMGS[i];
+    const img = ch.targetImg || DEMO_IMGS[ch.targetIndex] || DEMO_IMGS[i];
     if (!img) return;
     const b = document.createElement('button');
     b.className = 'cardx';
