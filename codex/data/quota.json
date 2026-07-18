@@ -1,0 +1,112 @@
+{
+  "_meta": {
+    "description": "每日生成額度追蹤",
+    "daily_limit": 16,
+    "min_interval_seconds": 30,
+    "note": "保守上限 8 張/天 / 16 衝刺 / 24 極限。連續 30+ 張易觸發 ChatGPT 冷卻"
+  },
+  "history": [],
+  "today": {
+    "date": "2026-07-19",
+    "generated": 12,
+    "limit": 16,
+    "sessions": [
+      {
+        "id": "acc-hat",
+        "kind": "item",
+        "timestamp": "2026-07-18T19:23:37.563Z",
+        "elapsed_seconds": 85.3,
+        "codex_session": "019f76ad-f570-7932-9189-c0c2f54c6da0",
+        "image": "items/acc-hat.png"
+      },
+      {
+        "id": "acc-glasses",
+        "kind": "item",
+        "timestamp": "2026-07-18T19:25:40.974Z",
+        "elapsed_seconds": 88.2,
+        "codex_session": "019f76af-b5ae-7193-973b-9fd0870c2470",
+        "image": "items/acc-glasses.png"
+      },
+      {
+        "id": "acc-scarf",
+        "kind": "item",
+        "timestamp": "2026-07-18T19:27:37.146Z",
+        "elapsed_seconds": 81,
+        "codex_session": "019f76b1-9803-7143-a654-d2073a1fe7fd",
+        "image": "items/acc-scarf.png"
+      },
+      {
+        "id": "acc-crown",
+        "kind": "item",
+        "timestamp": "2026-07-18T19:29:40.578Z",
+        "elapsed_seconds": 88.2,
+        "codex_session": "019f76b3-5c3e-7ea3-843a-5d5059de3796",
+        "image": "items/acc-crown.png"
+      },
+      {
+        "id": "acc-bow",
+        "kind": "item",
+        "timestamp": "2026-07-18T19:31:06.051Z",
+        "elapsed_seconds": 50.3,
+        "codex_session": "019f76b5-4045-7330-8c05-ac726c98a29b",
+        "image": "items/acc-bow.png"
+      },
+      {
+        "id": "acc-backpack",
+        "kind": "item",
+        "timestamp": "2026-07-18T19:33:05.146Z",
+        "elapsed_seconds": 83.9,
+        "codex_session": "019f76b6-8c22-7841-b3cb-9440bb44454d",
+        "image": "items/acc-backpack.png"
+      },
+      {
+        "id": "acc-hat",
+        "kind": "item",
+        "timestamp": "2026-07-18T19:41:19.938Z",
+        "elapsed_seconds": 63,
+        "codex_session": "019f76be-6be3-7250-a502-0005a9b5057e",
+        "image": "items/acc-hat.png"
+      },
+      {
+        "id": "acc-glasses",
+        "kind": "item",
+        "timestamp": "2026-07-18T19:42:26.281Z",
+        "elapsed_seconds": 31.1,
+        "codex_session": "019f76bf-eb7c-7550-b350-336cf306b5eb",
+        "image": "items/acc-glasses.png"
+      },
+      {
+        "id": "acc-scarf",
+        "kind": "item",
+        "timestamp": "2026-07-18T19:43:39.515Z",
+        "elapsed_seconds": 38.1,
+        "codex_session": "019f76c0-eceb-74f3-9d8d-b3dae6ce23d1",
+        "image": "items/acc-scarf.png"
+      },
+      {
+        "id": "acc-crown",
+        "kind": "item",
+        "timestamp": "2026-07-18T19:45:18.292Z",
+        "elapsed_seconds": 63.6,
+        "codex_session": "019f76c2-0c9e-78c3-a504-455aeb1a3db3",
+        "image": "items/acc-crown.png"
+      },
+      {
+        "id": "acc-bow",
+        "kind": "item",
+        "timestamp": "2026-07-18T19:46:55.900Z",
+        "elapsed_seconds": 62.4,
+        "codex_session": "019f76c3-8d2b-7a60-a452-9a11e5dac5f9",
+        "image": "items/acc-bow.png"
+      },
+      {
+        "id": "acc-backpack",
+        "kind": "item",
+        "timestamp": "2026-07-18T19:48:39.509Z",
+        "elapsed_seconds": 68.4,
+        "codex_session": "019f76c5-0b9e-75a0-87b1-603064a91279",
+        "image": "items/acc-backpack.png"
+      }
+    ]
+  }
+}

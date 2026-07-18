@@ -382,16 +382,37 @@ function renderBook() {
   });
   document.getElementById('btn-duo').style.display =
     arpCollectedCount() >= 2 ? 'block' : 'none';
-  /* 配件背包 */
+  /* 配件背包（紙娃娃：穿上/脫下，同部位互斥） */
   const items = arpItems();
+  const worn = arpWorn();
+  const ICON = { hat: '🎩', glasses: '👓', scarf: '🧣', crown: '👑', bow: '🎀', backpack: '🎒' };
   const bag = document.createElement('div');
   bag.className = 'charrow';
-  bag.innerHTML = '<div class="dot" style="background:#FFE06633">🎒</div><div class="info">' +
-    '<b>配件 ' + items.length + '/' + ACCESSORIES.length + '</b><p>' +
-    ACCESSORIES.map(a => (items.includes(a.id) ? '✅ ' : '🔒 ') + a.name + '（' + a.desc + '）').join('<br>') +
-    '</p></div>';
+  bag.style.flexDirection = 'column';
+  bag.style.alignItems = 'stretch';
+  bag.innerHTML = '<b style="color:var(--brand-dark);">🎒 配件背包 ' + items.length + '/' + ACCESSORIES.length + '</b>' +
+    ACCESSORIES.map(a => {
+      const owned = items.includes(a.id);
+      const isWorn = worn.includes(a.id);
+      return '<div style="display:flex;align-items:center;gap:8px;margin-top:8px;' + (owned ? '' : 'opacity:.45;filter:grayscale(1);') + '">' +
+        '<span style="font-size:22px;">' + (owned ? (ICON[a.id] || '🎁') : '🔒') + '</span>' +
+        '<div style="flex:1;"><b style="font-size:14px;color:var(--brand-dark);">' + a.name + '</b>' +
+        '<p style="font-size:11px;color:#888;">' + a.desc + '</p></div>' +
+        (owned ? '<button class="pill' + (isWorn ? '' : ' primary') + '" style="min-height:36px;padding:6px 12px;font-size:13px;" data-wear="' + a.id + '">' +
+          (isWorn ? '脫下' : '穿上') + '</button>' : '') +
+        '</div>';
+    }).join('');
   list.appendChild(bag);
 }
+document.getElementById('book-list').addEventListener('click', e => {
+  const id = e.target.dataset.wear;
+  if (!id) return;
+  if (arpWorn().includes(id)) arpUnwear(id); else arpWear(id);
+  arpSfx('pop');
+  CHARACTERS.forEach(applyAccessories);
+  renderBook();
+  arpTrack('accessory_toggle', { item: id, worn: arpWorn().includes(id) });
+});
 document.getElementById('btn-book').addEventListener('click', () => {
   renderBook();
   document.getElementById('modal-book').style.display = 'flex';

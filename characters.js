@@ -36,48 +36,94 @@ async function arpLoadConfig() {
   // 雲端品牌若沒定義配件，沿用預設三件（序號/等級解鎖機制仍可用）
   if (!ACCESSORIES.length && slug) {
     ACCESSORIES = [
-      { id: 'hat', name: '小紅帽', code: 'HAT2026', desc: '序號兌換' },
-      { id: 'glasses', name: '圓框眼鏡', code: 'COOL123', desc: '序號兌換' },
-      { id: 'scarf', name: '好感圍巾', unlock: 'lv3', desc: '好感度 Lv.3 解鎖' }
+      { id: 'hat', name: '小紅帽', code: 'HAT2026', desc: '序號兌換或寶箱' },
+      { id: 'glasses', name: '圓框眼鏡', code: 'COOL123', desc: '序號兌換或掃發票任務' },
+      { id: 'scarf', name: '好感圍巾', unlock: 'lv3', desc: '好感度 Lv.3 解鎖' },
+      { id: 'crown', name: '小皇冠', unlock: 'playerlv3', desc: '玩家 Lv.3 解鎖' },
+      { id: 'bow', name: '蝴蝶結', code: 'BOW2026', desc: '序號兌換' },
+      { id: 'backpack', name: '小背包', unlock: 'chest', desc: '寶箱獲得' }
     ];
   }
   return cfg;
 }
 
-/* ---------- 裝備/紙娃娃系統（雛形）：配件跨角色共用，存 localStorage ---------- */
+/* ---------- 裝備/紙娃娃系統：配件跨角色共用，存 localStorage ----------
+ * 視覺註冊表：codex 生成的去背圖 + 穿戴位置（builtin=幾何角色 / image=2D 看板角色）
+ * slot 同槽互斥（head 只能戴一頂）
+ */
+const ACC_VISUALS = {
+  hat:      { slot: 'head', img: 'codex/images/items/acc-hat.webp',      builtin: '0 0.8 0.04',    image: '0 1.02 0.04',  size: 0.34 },
+  crown:    { slot: 'head', img: 'codex/images/items/acc-crown.webp',    builtin: '0 0.8 0.04',    image: '0 1.02 0.04',  size: 0.3 },
+  bow:      { slot: 'head', img: 'codex/images/items/acc-bow.webp',      builtin: '0.1 0.73 0.05', image: '0.12 0.96 0.05', size: 0.26 },
+  glasses:  { slot: 'face', img: 'codex/images/items/acc-glasses.webp',  builtin: '0 0.55 0.17',   image: '0 0.6 0.06',   size: 0.24 },
+  scarf:    { slot: 'neck', img: 'codex/images/items/acc-scarf.webp',    builtin: '0 0.37 0.16',   image: '0 0.28 0.06',  size: 0.36 },
+  backpack: { slot: 'back', img: 'codex/images/items/acc-backpack.webp', builtin: '0.25 0.34 -0.05', image: '0.3 0.45 -0.02', size: 0.32 }
+};
 function arpItems() {
   try { return JSON.parse(localStorage.getItem('arp_items')) || []; } catch (e) { return []; }
+}
+function arpWorn() {
+  try {
+    const w = JSON.parse(localStorage.getItem('arp_worn'));
+    if (w) return w.filter(id => arpItems().includes(id));
+  } catch (e) {}
+  // 沒有穿戴紀錄 → 已擁有的每槽自動穿一件
+  const worn = [], used = {};
+  arpItems().forEach(id => {
+    const v = ACC_VISUALS[id];
+    if (v && !used[v.slot]) { worn.push(id); used[v.slot] = 1; }
+  });
+  return worn;
+}
+function arpWear(id) {
+  const v = ACC_VISUALS[id];
+  if (!v || !arpItems().includes(id)) return;
+  const worn = arpWorn().filter(w => (ACC_VISUALS[w] || {}).slot !== v.slot);
+  worn.push(id);
+  localStorage.setItem('arp_worn', JSON.stringify(worn));
+}
+function arpUnwear(id) {
+  localStorage.setItem('arp_worn', JSON.stringify(arpWorn().filter(w => w !== id)));
 }
 function arpUnlockItem(id) {
   const s = arpItems();
   if (s.includes(id)) return false;
   s.push(id); localStorage.setItem('arp_items', JSON.stringify(s));
+  arpWear(id); // 新配件自動穿上（同槽替換）
   return true;
 }
-/* 把已解鎖配件掛到角色身上（可重複呼叫，會先清掉舊的再掛） */
+/* 把「穿戴中」配件掛到角色身上（可重複呼叫，會先清掉舊的再掛）
+ * 用 codex 生成的去背圖做 2.5D 看板；圖載不到時 fallback 幾何 */
 function applyAccessories(ch) {
   const root = document.getElementById('char-' + ch.id);
   if (!root) return;
   const bob = root.querySelector('a-entity');
   if (!bob) return;
   bob.querySelectorAll('.acc').forEach(n => n.remove());
-  const items = arpItems();
   const isImg = ch.species === 'image';
-  const headY = isImg ? 0.95 : 0.63;
-  if (items.includes('hat')) {
-    const h = el('a-entity', { class: 'acc', position: '0 ' + headY + ' 0' }, bob);
-    el('a-cone', { 'radius-bottom': '0.13', 'radius-top': '0.02', height: '0.16', color: '#E03131', position: '0 0.08 0' }, h);
-    el('a-sphere', { radius: '0.03', color: '#FFF', position: '0 0.17 0' }, h);
-  }
-  if (items.includes('glasses') && !isImg) {
-    const g = el('a-entity', { class: 'acc', position: '0 0.55 0.15' }, bob);
-    el('a-torus', { position: '-0.06 0 0', radius: '0.035', 'radius-tubular': '0.005', color: '#4A3B47' }, g);
-    el('a-torus', { position: '0.06 0 0', radius: '0.035', 'radius-tubular': '0.005', color: '#4A3B47' }, g);
-    el('a-box', { position: '0 0.005 0', width: '0.05', height: '0.008', depth: '0.008', color: '#4A3B47' }, g);
-  }
-  if (items.includes('scarf') && !isImg) {
-    el('a-torus', { class: 'acc', position: '0 0.4 0', rotation: '90 0 0', radius: '0.13', 'radius-tubular': '0.035', color: '#FF7FA5' }, bob);
-  }
+  arpWorn().forEach(id => {
+    const v = ACC_VISUALS[id];
+    if (!v) return;
+    if (v.img) {
+      el('a-image', { class: 'acc', src: v.img, position: isImg ? v.image : v.builtin,
+        width: v.size, height: v.size, transparent: 'true',
+        material: 'alphaTest: 0.15; side: double' }, bob);
+      return;
+    }
+    // fallback 幾何（沒有圖檔的配件）
+    if (id === 'hat') {
+      const h = el('a-entity', { class: 'acc', position: '0 ' + (isImg ? 0.95 : 0.63) + ' 0' }, bob);
+      el('a-cone', { 'radius-bottom': '0.13', 'radius-top': '0.02', height: '0.16', color: '#E03131', position: '0 0.08 0' }, h);
+      el('a-sphere', { radius: '0.03', color: '#FFF', position: '0 0.17 0' }, h);
+    } else if (id === 'glasses' && !isImg) {
+      const g = el('a-entity', { class: 'acc', position: '0 0.55 0.15' }, bob);
+      el('a-torus', { position: '-0.06 0 0', radius: '0.035', 'radius-tubular': '0.005', color: '#4A3B47' }, g);
+      el('a-torus', { position: '0.06 0 0', radius: '0.035', 'radius-tubular': '0.005', color: '#4A3B47' }, g);
+      el('a-box', { position: '0 0.005 0', width: '0.05', height: '0.008', depth: '0.008', color: '#4A3B47' }, g);
+    } else if (id === 'scarf' && !isImg) {
+      el('a-torus', { class: 'acc', position: '0 0.4 0', rotation: '90 0 0', radius: '0.13', 'radius-tubular': '0.035', color: '#FF7FA5' }, bob);
+    }
+  });
 }
 function arpIsCustomMode() { return !!localStorage.getItem('arp_custom_chars') || !!localStorage.getItem('arp_custom_mind'); }
 function arpClearCustom() { localStorage.removeItem('arp_custom_chars'); localStorage.removeItem('arp_custom_mind'); }

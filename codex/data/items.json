@@ -1,0 +1,56 @@
+{
+  "_meta": {
+    "description": "AR IP 夥伴配飾（穿戴在角色身上的 2.5D 看板圖）",
+    "output_dir": "items"
+  },
+  "items": [
+    {
+      "id": "acc-hat",
+      "name": "小紅帽",
+      "description": "紅色尖頂小帽，白色絨球",
+      "prompt": "A tiny cute red pointed cone hat with a white fluffy pompom on top and a thin white brim, like a small party wizard hat for a plush toy pet, cherry red color with soft gradient",
+      "image": "items/acc-hat.png",
+      "generated_at": "2026-07-18T19:41:19.937Z"
+    },
+    {
+      "id": "acc-glasses",
+      "name": "圓框眼鏡",
+      "description": "棕色圓框眼鏡",
+      "prompt": "A pair of tiny round-frame glasses for a plush toy pet, warm brown thin frames, slightly oversized round lenses with subtle glass shine, bridge connecting the two lenses, drawn as one connected object",
+      "image": "items/acc-glasses.png",
+      "generated_at": "2026-07-18T19:42:26.280Z"
+    },
+    {
+      "id": "acc-scarf",
+      "name": "好感圍巾",
+      "description": "粉紅針織圍巾",
+      "prompt": "A tiny cozy knitted scarf wrapped in a ring shape as if around a plush toy pet neck, soft pink color with visible chunky knit texture and two short dangling ends with fringe",
+      "image": "items/acc-scarf.png",
+      "generated_at": "2026-07-18T19:43:39.515Z"
+    },
+    {
+      "id": "acc-crown",
+      "name": "小皇冠",
+      "description": "金黃色小皇冠",
+      "prompt": "A tiny cute golden crown with five rounded points each topped with a small pink gem sphere, soft warm gold color, toy-like glossy finish, slightly tilted playful angle",
+      "image": "items/acc-crown.png",
+      "generated_at": "2026-07-18T19:45:18.291Z"
+    },
+    {
+      "id": "acc-bow",
+      "name": "蝴蝶結",
+      "description": "粉紅大蝴蝶結",
+      "prompt": "A big cute pink ribbon bow with two rounded loops and two short trailing ribbon tails, soft strawberry pink with lighter pink polka dots, plush fabric look",
+      "image": "items/acc-bow.png",
+      "generated_at": "2026-07-18T19:46:55.899Z"
+    },
+    {
+      "id": "acc-backpack",
+      "name": "小背包",
+      "description": "鵝黃色小背包",
+      "prompt": "A tiny cute pastel yellow backpack for a plush toy pet, rounded square shape with a front pocket, small brown straps and a little star badge, soft toy-like material",
+      "image": "items/acc-backpack.png",
+      "generated_at": "2026-07-18T19:48:39.508Z"
+    }
+  ]
+}

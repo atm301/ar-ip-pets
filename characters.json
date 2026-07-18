@@ -81,9 +81,12 @@
     }
   ],
   "accessories": [
-    { "id": "hat", "name": "小紅帽", "code": "HAT2026", "desc": "序號兌換示範：購買憑證 QR 掃出的網址帶 ?gift=HAT2026 即獲得" },
-    { "id": "glasses", "name": "圓框眼鏡", "code": "COOL123", "desc": "序號兌換：?gift=COOL123" },
-    { "id": "scarf", "name": "好感圍巾", "unlock": "lv3", "desc": "任一角色好感度升到 Lv.3 自動解鎖" }
+    { "id": "hat", "name": "小紅帽", "code": "HAT2026", "desc": "序號兌換：?gift=HAT2026，或地圖寶箱機率獲得" },
+    { "id": "glasses", "name": "圓框眼鏡", "code": "COOL123", "desc": "序號兌換：?gift=COOL123，或完成「掃發票」每日任務" },
+    { "id": "scarf", "name": "好感圍巾", "unlock": "lv3", "desc": "任一角色好感度升到 Lv.3 自動解鎖" },
+    { "id": "crown", "name": "小皇冠", "unlock": "playerlv3", "desc": "玩家等級 Lv.3（累積 200 EXP）自動解鎖" },
+    { "id": "bow", "name": "蝴蝶結", "code": "BOW2026", "desc": "序號兌換：?gift=BOW2026" },
+    { "id": "backpack", "name": "小背包", "unlock": "chest", "desc": "地圖探索的寶箱機率獲得" }
   ],
   "duoScripts": [
     { "pair": ["mochi", "pudding"], "lines": [

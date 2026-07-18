@@ -62,6 +62,8 @@ function arpAddExp(n) {
   s.exp += n;
   localStorage.setItem('arp_exp', JSON.stringify(s));
   const after = 1 + Math.floor(s.exp / 100);
+  // 玩家 Lv.3 → 解鎖小皇冠（紙娃娃獎勵）
+  if (after >= 3 && typeof arpUnlockItem === 'function') arpUnlockItem('crown');
   return { exp: s.exp, levelUp: after > before, level: after };
 }
 function arpPlayerLevel() { return 1 + Math.floor(arpExpState().exp / 100); }

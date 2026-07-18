@@ -185,9 +185,16 @@ async function partnerTalk(s) {
 }
 /* ---- 寶箱 ---- */
 function openChest(s) {
-  const roll = Math.random();
   let bonus = '';
-  if (roll < 0.4 && typeof arpUnlockItem === 'function' && arpUnlockItem('hat')) bonus = '＋獲得配件「小紅帽」🎩';
+  if (Math.random() < 0.55 && typeof arpUnlockItem === 'function') {
+    const pool = ['backpack', 'hat', 'bow'].filter(id => !arpItems().includes(id));
+    if (pool.length) {
+      const id = pool[Math.floor(Math.random() * pool.length)];
+      arpUnlockItem(id);
+      const names = { backpack: '小背包🎒', hat: '小紅帽🎩', bow: '蝴蝶結🎀' };
+      bonus = '＋獲得配件「' + names[id] + '」！';
+    }
+  }
   finishSpawn(s, 'chest_open', 25, '🎁 寶箱打開了！+25 EXP ' + bonus);
 }
 function finishSpawn(s, event, exp, html) {
