@@ -171,7 +171,7 @@ function buildCharacter(ch) {
     el('a-sphere', { position: '0 0.51 0.155', radius: '0.028', color: ch.colors.accent }, bob);
   } else if (ch.species === 'chick') {
     // 嘴喙
-    el('a-cone', { position: '0 0.51 0.17', radius: '0.03', height: '0.05', rotation: '90 0 0', color: ch.colors.accent }, bob);
+    el('a-cone', { position: '0 0.51 0.17', 'radius-bottom': '0.03', 'radius-top': '0.001', height: '0.05', rotation: '90 0 0', color: ch.colors.accent }, bob);
     // 頭頂呆毛
     el('a-sphere', { position: '0 0.7 0', radius: '0.025', 'scale': '0.6 1.6 0.6', color: ch.colors.accent, rotation: '0 0 15' }, bob);
     // 小翅膀
