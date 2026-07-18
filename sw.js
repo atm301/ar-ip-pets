@@ -1,6 +1,6 @@
 /* AR IP 夥伴 Service Worker — 靜態資源 cache-first、設定檔 network-first
  * 部署有大改時 bump CACHE 版本 */
-const CACHE = 'arp-v2';
+const CACHE = 'arp-v3';
 const PRECACHE = [
   './', 'index.html', 'demo.html', 'map.html', 'scan.html', 'targets.html',
   'characters.js', 'characters.json', 'cloud.js', 'quests.js',

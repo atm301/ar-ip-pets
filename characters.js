@@ -33,6 +33,7 @@ async function arpLoadConfig() {
   CHARACTERS = cfg.characters || [];
   DUO_SCRIPTS = cfg.duoScripts || [];
   ACCESSORIES = cfg.accessories || [];
+  if (typeof arpSetQuests === 'function' && cfg.quests) arpSetQuests(cfg.quests);
   // 雲端品牌若沒定義配件，沿用預設三件（序號/等級解鎖機制仍可用）
   if (!ACCESSORIES.length && slug) {
     ACCESSORIES = [
@@ -222,7 +223,18 @@ function arpVibrate(pattern) {
   try { if (navigator.vibrate) navigator.vibrate(pattern || 40); } catch (e) {}
 }
 
-/* ---------- 7-1 角色說話（Web Speech API，每隻角色不同音高/語速） ---------- */
+/* ---------- 7-1 角色說話 ----------
+ * 優先播 VoxCPM 預生成的自然語音（assets/voice/manifest.json：台詞→音檔）；
+ * 沒對到的台詞（自訂品牌/新增台詞）退回 Web Speech API */
+let VOICE_MAP = null;
+let _voiceAudio = null;
+try {
+  fetch('assets/voice/manifest.json')
+    .then(r => (r.ok ? r.json() : null))
+    .then(m => { VOICE_MAP = m; })
+    .catch(function () {});
+} catch (e) {}
+
 let _zhVoice = null;
 function _pickVoice() {
   const vs = speechSynthesis.getVoices();
@@ -232,8 +244,12 @@ if ('speechSynthesis' in window) {
   _pickVoice();
   speechSynthesis.onvoiceschanged = _pickVoice;
 }
-function arpSpeak(ch, text) {
-  if (!arpSoundOn() || !('speechSynthesis' in window) || !text) return;
+function arpSpeakStop() {
+  try { if (_voiceAudio) { _voiceAudio.pause(); _voiceAudio = null; } } catch (e) {}
+  try { speechSynthesis.cancel(); } catch (e) {}
+}
+function _speakTTS(ch, text) {
+  if (!('speechSynthesis' in window)) return;
   try {
     speechSynthesis.cancel();
     const clean = text.replace(/（[^）]*）/g, '').replace(/[～!！?？…]+/g, '，');
@@ -245,6 +261,21 @@ function arpSpeak(ch, text) {
     u.volume = 0.9;
     speechSynthesis.speak(u);
   } catch (e) {}
+}
+function arpSpeak(ch, text) {
+  if (!arpSoundOn() || !text) return;
+  try {
+    const url = ch && VOICE_MAP && VOICE_MAP[ch.id] && VOICE_MAP[ch.id][text];
+    if (url) {
+      arpSpeakStop();
+      _voiceAudio = new Audio(url);
+      _voiceAudio.volume = 0.95;
+      const p = _voiceAudio.play();
+      if (p && p.catch) p.catch(function () {}); // autoplay 未解鎖時靜默（首次手勢後即可）
+      return;
+    }
+  } catch (e) {}
+  _speakTTS(ch, text);
 }
 
 /* ---------- 用 A-Frame 基本形狀組出可愛角色（免外部模型檔） ---------- */

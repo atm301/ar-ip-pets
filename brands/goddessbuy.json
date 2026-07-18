@@ -1,0 +1,128 @@
+{
+  "brand": {
+    "name": "GoddessBuy 神力好物",
+    "story": "高雄起家的美天生技，做給認真照顧自己的女生。我們不是大品牌，但看到這麼多粉絲持續回購，更相信顧好品質與足量成分才是對的——女神力系列每一包都是官方商標認證的 100% 足量配方。"
+  },
+  "characters": [
+    {
+      "id": "gb-collagen",
+      "name": "蘿絲",
+      "species": "image",
+      "imageSrc": "__STORAGE__/gb-collagen.webp",
+      "product": "女神力膠原蛋白聚醣美妍粉",
+      "productUrl": "https://www.goddessbuy.com.tw/proteoglycan",
+      "targetIndex": 0,
+      "colors": { "body": "#E8A0A8", "belly": "#FFF0F2", "accent": "#C4707E" },
+      "intro": "自信的小女神，你的愛美閨蜜，口頭禪是「女神就是你」。",
+      "voice": { "pitch": 1.4, "rate": 1.05 },
+      "greet": ["嗨女神～我是蘿絲，今天狀態不錯喔你！", "找到我啦！來，先給自己一個讚。"],
+      "taps": [
+        "欸跟你說，日本 3D 撐補配方，蘿絲我親自把關的。",
+        "膠原蛋白 5000mg 加蛋白聚醣，成分表敢給你看的那種。",
+        "淡淡莓果香，好入口才撐得成習慣嘛。",
+        "女神不是天生的，是每天累積的，懂？",
+        "0 脂肪 0 化學 0 防腐，我們小品牌就靠實在。",
+        "回購率 99.3% 耶，姐妹們都懂。",
+        "摸摸我～今天也要美美的喔！"
+      ],
+      "feeds": ["嗯～莓果香的，好喝！", "這杯我乾了，女神們跟上！", "謝啦～補好補滿！"],
+      "facts": [
+        "美妍粉有 Oricera、SalmoPG、Silkcrin 三個原料認證，一盒 15 入，一天一包剛剛好。",
+        "我們堅持官方商標認證的足量配方，不玩稀釋那套。"
+      ]
+    },
+    {
+      "id": "gb-lemon",
+      "name": "檸檬歐膩",
+      "species": "image",
+      "imageSrc": "__STORAGE__/gb-lemon.webp",
+      "product": "女神力紅檸纖纖",
+      "productUrl": "https://www.goddessbuy.com.tw/holi01",
+      "targetIndex": 1,
+      "colors": { "body": "#F2D14B", "belly": "#FFF9DF", "accent": "#E85A4F" },
+      "intro": "韓系活力教練，講話帶勁，最愛督促大家動起來。",
+      "voice": { "pitch": 1.5, "rate": 1.25 },
+      "greet": ["安妞！檸檬歐膩來了，今天喝水了沒？", "吼～被你抓到！剛做完晨間伸展。"],
+      "taps": [
+        "這罐是韓國歐膩的秘密武器，Ob-X 專利配方！",
+        "檸檬汁粉加康普茶加益生菌，酸酸的很順口。",
+        "光喝不動可不行喔，跟歐膩一起動次動次！",
+        "已經賣出八千九百多件了，姐妹口碑！",
+        "累的時候更要照顧自己，知道嗎？",
+        "來，深呼吸，我們再摸一下就去喝水。"
+      ],
+      "feeds": ["嗯哈～酸酸的好清爽！", "這杯下去，感覺可以再走一萬步！", "喝完記得補水喔，歐膩提醒過了！"],
+      "facts": [
+        "紅檸纖纖一盒 10 入，冷水搖一搖就能喝，上班帶著超方便。",
+        "配方來自韓國，檸檬加康普茶的組合，下午昏昏的時候來一包剛好。"
+      ]
+    },
+    {
+      "id": "gb-herbal",
+      "name": "祖嬤",
+      "species": "image",
+      "imageSrc": "__STORAGE__/gb-herbal.webp",
+      "product": "ANCIENT 清濕飲",
+      "productUrl": "https://www.goddessbuy.com.tw/ANCIENT",
+      "targetIndex": 2,
+      "colors": { "body": "#A85D4E", "belly": "#F5E6D8", "accent": "#6B3A2E" },
+      "intro": "百年古方的小仙婆，愛碎念但都是為你好。",
+      "voice": { "pitch": 0.9, "rate": 0.9 },
+      "greet": ["來啦囡仔～祖嬤等你很久囉。", "哎唷，乖孫來看祖嬤了。"],
+      "taps": [
+        "這帖是祖嬤家傳百年的古方，慢火熬煮再濃縮的。",
+        "紅棗、蓮子這些好料，祖嬤親自挑的。",
+        "人家說十胖九濕啦，身體要顧，聽祖嬤的。",
+        "冷水熱水都能沖，沒藉口不喝喔。",
+        "少吃冰、早點睡，比什麼都補。",
+        "摸摸頭～乖，祖嬤最疼你。"
+      ],
+      "feeds": ["嗯，這味對了，跟祖嬤小時候喝的一樣。", "呼～熱熱的喝，通體舒暢。", "好孩子，來，祖嬤再幫你添一杯。"],
+      "facts": [
+        "清濕飲是台灣製的家傳古方濃縮，一盒 10 入，冷熱水都能沖。",
+        "祖嬤的原則：真材實料慢慢熬，急不得。"
+      ]
+    }
+  ],
+  "duoScripts": [
+    { "pair": ["gb-collagen", "gb-lemon"], "lines": [
+      ["gb-lemon", "蘿絲！今天的運動菜單做了沒？"],
+      ["gb-collagen", "歐膩饒了我～我先把美妍粉喝完嘛。"],
+      ["gb-lemon", "由內而外加動起來，才是真女神！"],
+      ["gb-collagen", "好啦好啦……欸那喝完陪我自拍。"],
+      ["gb-lemon", "成交！動次動次！"]
+    ]},
+    { "pair": ["gb-collagen", "gb-herbal"], "lines": [
+      ["gb-collagen", "祖嬤，我最近熬夜追劇……"],
+      ["gb-herbal", "哎唷你這囡仔！祖嬤不是說要早點睡？"],
+      ["gb-collagen", "人家有補膠原蛋白嘛……"],
+      ["gb-herbal", "補歸補，睡眠才是根本。來，喝杯熱的。"],
+      ["gb-collagen", "……祖嬤最好了。"]
+    ]},
+    { "pair": ["gb-lemon", "gb-herbal"], "lines": [
+      ["gb-lemon", "祖嬤！要不要跟歐膩一起晨跑？"],
+      ["gb-herbal", "祖嬤都幾歲了還晨跑……散步可以。"],
+      ["gb-lemon", "散步也算！走起來！"],
+      ["gb-herbal", "哎唷慢一點啦，年輕人。"],
+      ["gb-lemon", "祖嬤你走超快的耶！"]
+    ]}
+  ],
+  "accessories": [
+    { "id": "hat", "name": "小紅帽", "code": "HAT2026", "desc": "序號兌換或地圖寶箱" },
+    { "id": "glasses", "name": "圓框眼鏡", "code": "COOL123", "desc": "序號兌換或掃發票任務" },
+    { "id": "scarf", "name": "好感圍巾", "unlock": "lv3", "desc": "好感度 Lv.3 解鎖" },
+    { "id": "crown", "name": "小皇冠", "unlock": "playerlv3", "desc": "玩家 Lv.3 解鎖" },
+    { "id": "bow", "name": "蝴蝶結", "code": "BOW2026", "desc": "序號兌換" },
+    { "id": "backpack", "name": "小背包", "unlock": "chest", "desc": "地圖寶箱獲得" }
+  ],
+  "quests": [
+    { "id": "greet", "name": "跟女神夥伴打招呼", "target": 1, "ev": "talk", "exp": 10 },
+    { "id": "tap10", "name": "跟夥伴聊天 10 句", "target": 10, "ev": "talk", "exp": 25 },
+    { "id": "feed3", "name": "請夥伴喝 3 杯", "target": 3, "ev": "feed", "exp": 20 },
+    { "id": "scan3", "name": "掃描 3 次產品包裝", "target": 3, "ev": "scan", "exp": 40 },
+    { "id": "invoice", "name": "回購掃發票認證", "target": 1, "ev": "invoice", "exp": 30, "item": "glasses" },
+    { "id": "photo", "name": "跟女神夥伴自拍一張", "target": 1, "ev": "photo", "exp": 15 },
+    { "id": "share", "name": "分享合照給姐妹", "target": 1, "ev": "share", "exp": 25 }
+  ],
+  "spawns": []
+}

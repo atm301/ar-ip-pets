@@ -1,0 +1,67 @@
+{
+  "_meta": {
+    "description": "品牌產品 IP 角色（2D mascot → 前台 2.5D 可動看板）"
+  },
+  "characters": [
+    {
+      "id": "dt-cheese",
+      "name": "金絲",
+      "ip": "原味千尋 Daintiest",
+      "role": "經典原味乳酪絲的職人小獅",
+      "description": "金黃乳酪絲鬃毛的小獅子，職人大哥個性",
+      "prompt": "A small proud lion cub mascot whose fluffy mane is made of golden curly cheese strings, warm golden-orange body, wearing a tiny white artisan apron, confident warm smile, one paw on chest like a proud craftsman",
+      "image": "chars/dt-cheese.png",
+      "generated_at": "2026-07-18T20:47:46.218Z"
+    },
+    {
+      "id": "dt-honey",
+      "name": "蜜蜜",
+      "ip": "原味千尋 Daintiest",
+      "role": "清境蜂蜜乳酪絲的小蜜蜂",
+      "description": "抱著蜂蜜罐的奶油色小蜜蜂，甜美黏人",
+      "prompt": "A chubby cream-yellow baby bee mascot with tiny round translucent wings and soft brown stripes, hugging a small golden honey pot, honey drip on its cheek, sweet dreamy smile with blush",
+      "image": "chars/dt-honey.png",
+      "generated_at": "2026-07-18T20:49:22.542Z"
+    },
+    {
+      "id": "dt-roe",
+      "name": "烏將軍",
+      "ip": "原味千尋 Daintiest",
+      "role": "烏魚子乳酪絲的武士貓",
+      "description": "橘白武士貓，腰間掛烏魚子，老饕個性",
+      "prompt": "A round orange-and-white cat mascot dressed as a tiny samurai with a dark red haori vest, a slice of amber mullet roe shaped like a gem hanging on its belt, whiskers, dignified but cute gourmet expression",
+      "image": "chars/dt-roe.png",
+      "generated_at": "2026-07-18T20:51:01.051Z"
+    },
+    {
+      "id": "gb-collagen",
+      "name": "蘿絲",
+      "ip": "GoddessBuy 神力好物",
+      "role": "膠原蛋白美妍粉的小女神",
+      "description": "乾燥玫瑰粉的小女神精靈，閨蜜自信",
+      "prompt": "A tiny goddess fairy mascot with dusty-rose pink bob hair and a small golden laurel crown, wearing a flowy blush pink mini dress, holding a sparkling pink powder jar, confident wink, tiny star sparkles on cheeks",
+      "image": "chars/gb-collagen.png",
+      "generated_at": "2026-07-18T20:52:42.337Z"
+    },
+    {
+      "id": "gb-lemon",
+      "name": "檸檬歐膩",
+      "ip": "GoddessBuy 神力好物",
+      "role": "紅檸纖纖的活力精靈",
+      "description": "珊瑚紅運動系檸檬精靈，教練個性",
+      "prompt": "An energetic lemon sprite mascot with a shiny lemon-shaped head with green leaf, coral red tracksuit jacket, striking a cheerful power pose with one fist up, sporty sweatband, big motivated smile",
+      "image": "chars/gb-lemon.png",
+      "generated_at": "2026-07-18T20:54:26.886Z"
+    },
+    {
+      "id": "gb-herbal",
+      "name": "祖嬤",
+      "ip": "GoddessBuy 神力好物",
+      "role": "清濕飲的古方小仙婆",
+      "description": "迷你藥膳老仙婆，慈祥碎念",
+      "prompt": "A tiny adorable grandma herbalist fairy mascot with silver-grey hair bun and round glasses, wearing a burgundy traditional Chinese vest, holding a small steaming teacup, red dates and lotus seeds floating around her, kind wise smile",
+      "image": "chars/gb-herbal.png",
+      "generated_at": "2026-07-18T20:56:05.685Z"
+    }
+  ]
+}

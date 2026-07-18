@@ -1,15 +1,15 @@
 {
   "_meta": {
     "description": "每日生成額度追蹤",
-    "daily_limit": 16,
+    "daily_limit": 24,
     "min_interval_seconds": 30,
     "note": "保守上限 8 張/天 / 16 衝刺 / 24 極限。連續 30+ 張易觸發 ChatGPT 冷卻"
   },
   "history": [],
   "today": {
     "date": "2026-07-19",
-    "generated": 12,
-    "limit": 16,
+    "generated": 18,
+    "limit": 24,
     "sessions": [
       {
         "id": "acc-hat",
@@ -106,6 +106,54 @@
         "elapsed_seconds": 68.4,
         "codex_session": "019f76c5-0b9e-75a0-87b1-603064a91279",
         "image": "items/acc-backpack.png"
+      },
+      {
+        "id": "dt-cheese",
+        "kind": "character",
+        "timestamp": "2026-07-18T20:47:46.219Z",
+        "elapsed_seconds": 77.3,
+        "codex_session": "019f76fb-18a5-7790-b382-accaf6044abd",
+        "image": "chars/dt-cheese.png"
+      },
+      {
+        "id": "dt-honey",
+        "kind": "character",
+        "timestamp": "2026-07-18T20:49:22.543Z",
+        "elapsed_seconds": 61.1,
+        "codex_session": "019f76fc-bd77-74e0-8822-a35c4913281f",
+        "image": "chars/dt-honey.png"
+      },
+      {
+        "id": "dt-roe",
+        "kind": "character",
+        "timestamp": "2026-07-18T20:51:01.052Z",
+        "elapsed_seconds": 63.3,
+        "codex_session": "019f76fe-3634-7240-9525-030c9fc46e20",
+        "image": "chars/dt-roe.png"
+      },
+      {
+        "id": "gb-collagen",
+        "kind": "character",
+        "timestamp": "2026-07-18T20:52:42.338Z",
+        "elapsed_seconds": 66.1,
+        "codex_session": "019f76ff-b6fa-7581-b146-2c0d1e345817",
+        "image": "chars/gb-collagen.png"
+      },
+      {
+        "id": "gb-lemon",
+        "kind": "character",
+        "timestamp": "2026-07-18T20:54:26.887Z",
+        "elapsed_seconds": 69.3,
+        "codex_session": "019f7701-4385-7b32-816d-f9ea7d95fdde",
+        "image": "chars/gb-lemon.png"
+      },
+      {
+        "id": "gb-herbal",
+        "kind": "character",
+        "timestamp": "2026-07-18T20:56:05.686Z",
+        "elapsed_seconds": 63.6,
+        "codex_session": "019f7702-db37-7c30-a711-0d7811c49b53",
+        "image": "chars/gb-herbal.png"
       }
     ]
   }

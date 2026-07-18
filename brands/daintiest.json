@@ -1,0 +1,128 @@
+{
+  "brand": {
+    "name": "原味千尋",
+    "story": "2003 年創立於彰化員林。創辦人洪嘉男堅持「我們家的乳酪絲，就是要自己做」——16 公升的牛奶只做得出 1 公斤乳酪絲，手感剝絲、現烤出爐、無添加無防腐，做出台灣乳酪絲第一品牌。得過亞太無添加美食獎三星、世界品質大賞銀質獎，也是彰化十大伴手禮。"
+  },
+  "characters": [
+    {
+      "id": "dt-cheese",
+      "name": "金絲",
+      "species": "image",
+      "imageSrc": "__STORAGE__/dt-cheese.webp",
+      "product": "經典原味乳酪絲（連續 10 年銷售冠軍）",
+      "productUrl": "https://www.daintiest.net/products/original-1",
+      "targetIndex": 0,
+      "colors": { "body": "#E8A33D", "belly": "#FFF3DC", "accent": "#C96F1F" },
+      "intro": "乳酪絲鬃毛的職人小獅，最愛講工序的堅持。",
+      "voice": { "pitch": 1.0, "rate": 0.95 },
+      "greet": ["你來啦！我是金絲，這批乳酪絲今天剛烤好的喔。", "歡迎歡迎！聞到了嗎？現烤乳酪的香氣。"],
+      "taps": [
+        "嘿嘿，我的鬃毛可是一絲一絲手工剝出來的！",
+        "跟你說，16 公升的牛奶，只做得出 1 公斤乳酪絲喔。",
+        "費時費工沒關係，好吃最重要，這是我們家的規矩。",
+        "外層烤得金黃酥脆，裡面還是軟的，這才叫功夫。",
+        "無添加、無防腐，敢給自己小孩吃的才敢賣。",
+        "我可是連續 10 年的銷售冠軍，不是我在說。",
+        "再摸我的鬃毛會捲得更漂亮喔！"
+      ],
+      "feeds": ["嗯～奶香在嘴裡散開的感覺，就是這個！", "好吃！南美草原的乳源果然不一樣。", "謝謝招待！配茶配咖啡都很搭喔。"],
+      "facts": [
+        "經典原味乳酪絲是鎮店招牌，手感剝絲再現烤，一開封就是濃濃奶香。",
+        "我們的乳酪絲上過高鐵 T-Shopping 和誠品，是彰化十大伴手禮之一喔。"
+      ]
+    },
+    {
+      "id": "dt-honey",
+      "name": "蜜蜜",
+      "species": "image",
+      "imageSrc": "__STORAGE__/dt-honey.webp",
+      "product": "清境蜂蜜乳酪絲",
+      "productUrl": "https://www.daintiest.net/products/honey",
+      "targetIndex": 1,
+      "colors": { "body": "#F5C84C", "belly": "#FFF8E1", "accent": "#B8860B" },
+      "intro": "抱著蜂蜜罐的小蜜蜂，講話甜甜的很黏人。",
+      "voice": { "pitch": 1.7, "rate": 1.1 },
+      "greet": ["嗨嗨～我是蜜蜜，要不要來一口甜甜的？", "你找到我了！我剛採完蜜回來嘛。"],
+      "taps": [
+        "嘿嘿，我身上有天然蜂蜜的味道喔～",
+        "乳酪的鹹香加上蜂蜜的甜，是我調的黃金比例！",
+        "尾韻甜甜的不膩，跟我一樣討人喜歡嘛。",
+        "偷偷跟你說，金絲哥哥烤乳酪的時候我都在旁邊偷聞。",
+        "被摸摸就想請你吃蜜！可是罐罐要留給乳酪絲用……",
+        "下午茶時間到了嗎？我陪你！"
+      ],
+      "feeds": ["哇～甜甜鹹鹹的，幸福的味道！", "嗯嗯！蜂蜜跟乳酪果然是天生一對。", "再一口嘛～最後一口啦。"],
+      "facts": [
+        "清境蜂蜜乳酪絲是人氣口味，乳酪絲拌天然蜂蜜下去烘，尾韻是淡淡蜜甜。",
+        "一樣無添加無防腐喔，甜味全部來自真蜂蜜。"
+      ]
+    },
+    {
+      "id": "dt-roe",
+      "name": "烏將軍",
+      "species": "image",
+      "imageSrc": "__STORAGE__/dt-roe.webp",
+      "product": "烏魚子乳酪絲（原味千尋 × 魚香涎聯名）",
+      "productUrl": "https://www.daintiest.net/products/mullet-roe-cheese-stick",
+      "targetIndex": 2,
+      "colors": { "body": "#E07A3E", "belly": "#FFF0E0", "accent": "#8B2E1F" },
+      "intro": "腰掛烏魚子的武士貓，標準老饕，配茶配酒都懂。",
+      "voice": { "pitch": 0.7, "rate": 0.9 },
+      "greet": ["在下烏將軍。閣下識貨，找到本將軍了。", "喔？你聞到烏魚子的香氣了嗎？好鼻子。"],
+      "taps": [
+        "本將軍腰上這片烏魚子，可是海裡的紅寶石。",
+        "鹹香回甘，配茶配酒皆宜——這是大人的味道。",
+        "我們拿過 Monde Selection 銀獎，實力，不用多說。",
+        "烏魚子粉揉進乳酪裡，這個組合，唯有台灣。",
+        "年輕人，吃東西要慢，滋味才出得來。",
+        "摸可以，別碰我的烏魚子。"
+      ],
+      "feeds": ["嗯——鹹香在後頭回甘，妙哉。", "此味只應寶島有。", "好，賞你看我滿足的表情。"],
+      "facts": [
+        "烏魚子乳酪絲是跟魚香涎的聯名款，烏魚子粉入乳酪，鹹香回甘。",
+        "這款拿過 Monde Selection 銀獎和 A.A. Taste Awards，送禮特別有面子。"
+      ]
+    }
+  ],
+  "duoScripts": [
+    { "pair": ["dt-cheese", "dt-honey"], "lines": [
+      ["dt-honey", "金絲哥哥！今天的乳酪絲烤好了嗎？"],
+      ["dt-cheese", "剛出爐。你的蜂蜜準備好了沒？"],
+      ["dt-honey", "早就好了嘛～我親自去清境採的耶。"],
+      ["dt-cheese", "那就開工。好東西，急不得。"],
+      ["dt-honey", "（小聲）他每次都講這句……但真的好吃嘛。"]
+    ]},
+    { "pair": ["dt-cheese", "dt-roe"], "lines": [
+      ["dt-roe", "金絲，本將軍的烏魚子批次到了。"],
+      ["dt-cheese", "將軍，這次的成色不錯啊。"],
+      ["dt-roe", "當然。海裡的紅寶石，本將軍親自把關。"],
+      ["dt-cheese", "那就照老規矩——費時費工，慢慢做。"],
+      ["dt-roe", "妙哉。此乃職人之道。"]
+    ]},
+    { "pair": ["dt-honey", "dt-roe"], "lines": [
+      ["dt-honey", "將軍將軍！你的烏魚子借我沾一點蜂蜜好不好？"],
+      ["dt-roe", "……胡鬧。這是大人的味道。"],
+      ["dt-honey", "甜甜鹹鹹的一定很好吃嘛～"],
+      ["dt-roe", "……留下一小片。只此一次。"],
+      ["dt-honey", "耶！將軍最好了！"]
+    ]}
+  ],
+  "accessories": [
+    { "id": "hat", "name": "小紅帽", "code": "HAT2026", "desc": "序號兌換或地圖寶箱" },
+    { "id": "glasses", "name": "圓框眼鏡", "code": "COOL123", "desc": "序號兌換或掃發票任務" },
+    { "id": "scarf", "name": "好感圍巾", "unlock": "lv3", "desc": "好感度 Lv.3 解鎖" },
+    { "id": "crown", "name": "小皇冠", "unlock": "playerlv3", "desc": "玩家 Lv.3 解鎖" },
+    { "id": "bow", "name": "蝴蝶結", "code": "BOW2026", "desc": "序號兌換" },
+    { "id": "backpack", "name": "小背包", "unlock": "chest", "desc": "地圖寶箱獲得" }
+  ],
+  "quests": [
+    { "id": "greet", "name": "跟乳酪夥伴說話 1 次", "target": 1, "ev": "talk", "exp": 10 },
+    { "id": "tap10", "name": "摸摸夥伴 10 次", "target": 10, "ev": "talk", "exp": 25 },
+    { "id": "feed3", "name": "餵夥伴吃乳酪絲 3 次", "target": 3, "ev": "feed", "exp": 20 },
+    { "id": "scan3", "name": "掃描 3 次產品包裝", "target": 3, "ev": "scan", "exp": 40 },
+    { "id": "invoice", "name": "買乳酪絲掃發票認證", "target": 1, "ev": "invoice", "exp": 30, "item": "glasses" },
+    { "id": "photo", "name": "跟夥伴拍張合照", "target": 1, "ev": "photo", "exp": 15 },
+    { "id": "duo", "name": "讓兩隻夥伴見面聊天", "target": 1, "ev": "duo", "exp": 20 }
+  ],
+  "spawns": []
+}

@@ -107,6 +107,14 @@ th, td { text-align:left; padding:8px 10px; border-bottom:1px solid #f5dfe8; }
     <button class="btn ghost" id="btn-reset-chars">↩️ 還原預設</button>
   </div>
   <div class="note">📌 「存到此裝置」= 立即在這支手機的前台生效（自訂模式）；「下載 characters.json」= 交給工程師 push 上線，全部使用者生效。</div>
+
+  <h2>每日任務設定</h2>
+  <p class="help">顧客每天可完成的任務與獎勵。從常見任務庫加入後可改名稱/次數/EXP。（之後會加「AI 依品牌自動生任務」）</p>
+  <div id="quest-list-admin"></div>
+  <div class="row" style="margin-top:8px;">
+    <select id="quest-preset" style="flex:2;min-width:200px;"></select>
+    <button class="btn ghost" id="btn-add-quest" type="button">➕ 加入</button>
+  </div>
 </section>
 
 <!-- ③ 地圖據點（P4） -->
@@ -172,6 +180,7 @@ th, td { text-align:left; padding:8px 10px; border-bottom:1px solid #f5dfe8; }
 
 <script src="cloud.js"></script>
 <script src="characters.js"></script>
+<script src="quests.js"></script>
 <script src="libs/supabase.js"></script>
 <link rel="stylesheet" href="libs/leaflet.css">
 <script src="libs/leaflet.js"></script>
@@ -345,8 +354,43 @@ $('btn-add-ch').addEventListener('click', () => {
 });
 function exportConfig() {
   brand = { name: $('brand-name').value.trim(), story: $('brand-story').value.trim() };
-  return { brand, characters: chars, duoScripts: DUO_SCRIPTS, accessories: ACCESSORIES, spawns: spawns };
+  return { brand, characters: chars, duoScripts: DUO_SCRIPTS, accessories: ACCESSORIES,
+    spawns: spawns, quests: brandQuests };
 }
+
+/* ---------- 每日任務編輯器（常見任務庫 QUEST_PRESETS 在 quests.js） ---------- */
+let brandQuests = ARP_QUESTS.map(q => Object.assign({}, q));
+function renderQuestAdmin() {
+  const box = $('quest-list-admin'); box.innerHTML = '';
+  brandQuests.forEach((q, i) => {
+    const div = document.createElement('div');
+    div.className = 'imgcard';
+    div.innerHTML = '<div class="inf"><div class="row">' +
+      '<input type="text" value="' + q.name + '" data-qf="name" data-qi="' + i + '" style="flex:3;min-width:150px;">' +
+      '<input type="text" value="' + q.target + '" data-qf="target" data-qi="' + i + '" style="width:56px;" title="目標次數">' +
+      '<input type="text" value="' + q.exp + '" data-qf="exp" data-qi="' + i + '" style="width:56px;" title="EXP 獎勵">' +
+      '<button class="btn ghost" data-qdel="' + i + '" type="button">🗑️</button>' +
+      '</div><small>觸發：' + q.ev + (q.item ? '｜獎勵配件：' + q.item : '') + '</small></div>';
+    box.appendChild(div);
+  });
+  $('quest-preset').innerHTML = QUEST_PRESETS
+    .map((p, i) => '<option value="' + i + '">' + p.name + '（' + p.exp + ' EXP）</option>').join('');
+}
+$('quest-list-admin').addEventListener('input', e => {
+  const f = e.target.dataset.qf, i = +e.target.dataset.qi;
+  if (f === undefined || isNaN(i)) return;
+  brandQuests[i][f] = (f === 'target' || f === 'exp') ? Math.max(1, +e.target.value || 1) : e.target.value;
+});
+$('quest-list-admin').addEventListener('click', e => {
+  if (e.target.dataset.qdel !== undefined) { brandQuests.splice(+e.target.dataset.qdel, 1); renderQuestAdmin(); }
+});
+$('btn-add-quest').addEventListener('click', () => {
+  const p = QUEST_PRESETS[+$('quest-preset').value];
+  if (!p) return;
+  const q = Object.assign({}, p);
+  q.id = p.id + '-' + Date.now() % 10000; // 同任務可加多次
+  brandQuests.push(q); renderQuestAdmin();
+});
 $('btn-save-chars').addEventListener('click', () => {
   try {
     localStorage.setItem('arp_custom_chars', JSON.stringify(exportConfig()));
@@ -479,6 +523,7 @@ $('brand-select').addEventListener('change', async e => {
   if (cfg.characters && cfg.characters.length) { chars = cfg.characters; renderChars(); }
   if (cfg.brand) { $('brand-name').value = cfg.brand.name || ''; $('brand-story').value = cfg.brand.story || ''; }
   spawns = cfg.spawns || []; renderSpawnList();
+  if (cfg.quests && cfg.quests.length) { brandQuests = cfg.quests.map(q => Object.assign({}, q)); renderQuestAdmin(); }
   const url = location.origin + '/?b=' + activeBrand.slug;
   $('front-url').innerHTML = '<a href="' + url + '" target="_blank">' + url + '</a>';
   $('btn-publish').textContent = activeBrand.published ? '⏸️ 取消發佈' : '🚀 發佈';
@@ -540,6 +585,7 @@ renderStats = async function () {
 
 refreshAuthUI();
 
+renderQuestAdmin();
 loadChars();
 </script>
 </body>

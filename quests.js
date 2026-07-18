@@ -2,14 +2,26 @@
  * 每日任務 + EXP/玩家等級（P3 雛形）
  * 進度存 localStorage，每日重置；獎勵 = EXP + 配件
  * ============================================================ */
-const ARP_QUESTS = [
+/* 常見任務庫（後台「從常見任務加入」的來源；品牌沒自訂就用前 6 個當預設） */
+const QUEST_PRESETS = [
   { id: 'greet',   name: '跟夥伴說話 1 次',           target: 1,  ev: 'talk',      exp: 10 },
   { id: 'tap10',   name: '摸摸夥伴 10 次',            target: 10, ev: 'talk',      exp: 25 },
   { id: 'feed3',   name: '餵食 3 次',                 target: 3,  ev: 'feed',      exp: 20 },
   { id: 'scan1',   name: '掃描 1 個產品',             target: 1,  ev: 'scan',      exp: 20 },
   { id: 'invoice', name: '掃 1 張消費發票',           target: 1,  ev: 'invoice',   exp: 30, item: 'glasses' },
-  { id: 'walk',    name: '地圖探索：完成 1 次遭遇',   target: 1,  ev: 'encounter', exp: 30 }
+  { id: 'walk',    name: '地圖探索：完成 1 次遭遇',   target: 1,  ev: 'encounter', exp: 30 },
+  { id: 'scan3',   name: '掃描產品 3 次',             target: 3,  ev: 'scan',      exp: 40 },
+  { id: 'photo',   name: '跟夥伴拍 1 張合照',         target: 1,  ev: 'photo',     exp: 15 },
+  { id: 'share',   name: '分享合照給朋友',            target: 1,  ev: 'share',     exp: 25 },
+  { id: 'duo',     name: '看 1 次角色相聚劇情',       target: 1,  ev: 'duo',       exp: 20 },
+  { id: 'feed10',  name: '大胃王：餵食 10 次',        target: 10, ev: 'feed',      exp: 45 },
+  { id: 'walk3',   name: '地圖大冒險：3 次遭遇',      target: 3,  ev: 'encounter', exp: 60 }
 ];
+let ARP_QUESTS = QUEST_PRESETS.slice(0, 6);
+/* 品牌自訂任務（characters.js 載入品牌設定時呼叫） */
+function arpSetQuests(list) {
+  if (Array.isArray(list) && list.length) ARP_QUESTS = list;
+}
 
 function arpToday() {
   const d = new Date();

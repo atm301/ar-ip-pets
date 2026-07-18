@@ -394,6 +394,7 @@ function capturePhoto() {
   document.getElementById('btn-photo-dl').href = url;
   document.getElementById('modal-photo').style.display = 'flex';
   arpSfx('found'); arpVibrate(60);
+  questBump('photo'); updateQuestBadge();
   arpTrack('photo_capture', {}); arpCloudLog('photo_capture');
 }
 document.getElementById('btn-photo').addEventListener('click', capturePhoto);
@@ -403,6 +404,7 @@ document.getElementById('btn-photo-share').addEventListener('click', async () =>
     const file = new File([blob], 'ar-pet.jpg', { type: 'image/jpeg' });
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       await navigator.share({ files: [file], title: '我的 AR 夥伴', text: '掃產品就能喚醒角色！' });
+      questBump('share'); updateQuestBadge();
       arpTrack('photo_share', {});
     } else {
       document.getElementById('btn-photo-dl').click();
@@ -415,7 +417,7 @@ const btnSound = document.getElementById('btn-sound');
 function renderSoundBtn() { btnSound.textContent = arpSoundOn() ? '🔊' : '🔇'; }
 btnSound.addEventListener('click', () => {
   arpToggleSound(); renderSoundBtn();
-  if (!arpSoundOn()) { try { speechSynthesis.cancel(); } catch (e) {} }
+  if (!arpSoundOn()) arpSpeakStop();
   arpTrack('toggle_sound', { on: arpSoundOn() });
 });
 
@@ -504,6 +506,7 @@ function playDuo(idA, idB) {
       arpSpeak(c, text);
     }, i * 2200);
   });
+  questBump('duo'); updateQuestBadge();
   arpTrack('duo_scene', { pair: script.pair.join('_') });
   arpCloudLog('duo_scene', null, { pair: script.pair.join('_') });
 }
