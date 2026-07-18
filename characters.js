@@ -136,6 +136,9 @@ function el(tag, attrs, parent) {
 
 function buildCharacter(ch) {
   const root = el('a-entity', { id: 'char-' + ch.id, class: 'clickable' });
+  // 腳下陰影（不隨浮動動畫移動，增加「站在桌面上」的定著感）
+  el('a-circle', { position: '0 0.005 0', rotation: '-90 0 0', radius: '0.26',
+    color: '#000', opacity: '0.16' }, root);
   // 待機上下浮動
   const bob = el('a-entity', {
     animation: 'property: position; from: 0 0 0; to: 0 0.06 0; dir: alternate; dur: 1200; loop: true; easing: easeInOutSine'
@@ -181,14 +184,19 @@ function buildCharacter(ch) {
   return root;
 }
 
-/* 角色開心跳一下 */
+/* 角色開心跳一下（相對目前位置，角色可能站在產品旁而非原點） */
 function charJump(chId) {
   const rootEl = document.getElementById('char-' + chId);
   if (!rootEl) return;
+  const p = rootEl.getAttribute('position');
+  if (!rootEl.dataset.basePos) rootEl.dataset.basePos = p.x + ' ' + p.y + ' ' + p.z;
+  const from = rootEl.dataset.basePos;
+  p.y = parseFloat(from.split(' ')[1]); p.x = parseFloat(from.split(' ')[0]);
+  const to = p.x + ' ' + (p.y + 0.25) + ' ' + p.z;
   rootEl.removeAttribute('animation__jump');
   rootEl.setAttribute('animation__jump',
-    'property: position; from: 0 0 0; to: 0 0.25 0; dir: alternate; dur: 220; loop: 2; easing: easeOutQuad');
-  setTimeout(() => rootEl.setAttribute('position', '0 0 0'), 1000);
+    'property: position; from: ' + from + '; to: ' + to + '; dir: alternate; dur: 220; loop: 2; easing: easeOutQuad');
+  setTimeout(() => { rootEl.removeAttribute('animation__jump'); rootEl.setAttribute('position', from); }, 1000);
 }
 
 function pickLine(arr) { return arr[Math.floor(Math.random() * arr.length)]; }

@@ -161,8 +161,12 @@ CHARACTERS.forEach(ch => {
   const anchor = document.createElement('a-entity');
   anchor.setAttribute('mindar-image-target', 'targetIndex: ' + ch.targetIndex);
   const charRoot = buildCharacter(ch);
-  charRoot.setAttribute('scale', '1.2 1.2 1.2');
-  charRoot.setAttribute('position', '0 -0.3 0');
+  // 站在產品「旁邊」而不是蓋在產品上：偶數 target 站右側、奇數站左側
+  // （MindAR 座標：產品圖寬 = 1 單位，x ±0.85 剛好落在圖外緣）
+  const side = ch.targetIndex % 2 === 0 ? 1 : -1;
+  charRoot.setAttribute('scale', '1.1 1.1 1.1');
+  charRoot.setAttribute('position', (0.85 * side) + ' -0.35 0');
+  charRoot.setAttribute('rotation', '0 ' + (-18 * side) + ' 0'); // 微微面向產品
   anchor.appendChild(charRoot);
   sceneEl.appendChild(anchor);
 
@@ -186,6 +190,13 @@ function showBubble(who, line, meta) {
 
 function onFound(ch) {
   if (!activeIds.includes(ch.id)) activeIds.push(ch.id);
+  // 登場動畫：從小彈出（easeOutBack 帶回彈感）
+  const rootEl = document.getElementById('char-' + ch.id);
+  if (rootEl) {
+    rootEl.removeAttribute('animation__spawn');
+    rootEl.setAttribute('animation__spawn',
+      'property: scale; from: 0.01 0.01 0.01; to: 1.1 1.1 1.1; dur: 550; easing: easeOutBack');
+  }
   hint.style.display = 'none';
   actions.style.display = 'flex';
   const isNew = arpDiscover(ch.id);
