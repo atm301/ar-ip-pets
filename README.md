@@ -19,7 +19,7 @@ demo.html        免鏡頭展示模式（提案 demo / 桌機測試用）
 admin.html       品牌後台（上傳產品圖→品質評分→編譯辨識檔→綁角色→2D 圖可動化→數據）
 characters.json  角色/台詞/配件設定檔（非工程師改這份即可）
 characters.js    共用邏輯（3D 組裝、音效、TTS、存檔、統計）
-vendor/          self-host 的 A-Frame 與 MindAR（不吃 CDN）
+libs/          self-host 的 A-Frame 與 MindAR（不吃 CDN）
 targets/         targets.mind 辨識檔（3 張示範圖已編譯）
 assets/          demo-1/2/3 示範圖、OG 圖
 ```
