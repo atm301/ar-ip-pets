@@ -189,6 +189,7 @@ const toast = document.getElementById('toast');
 const scanbox = document.getElementById('scanbox');
 let activeIds = [];
 let bubbleTimer = null, factTimer = null, idleTimer = null;
+const greetTimers = {}, lastGreet = {};
 let duoPlayed = false;
 let sceneEl = null;
 
@@ -248,6 +249,14 @@ function onFound(ch) {
       'property: scale; from: 0.01 0.01 0.01; to: 1.1 1.1 1.1; dur: 550; easing: easeOutBack');
     setTimeout(() => rootEl.setAttribute('scale', '1.1 1.1 1.1'), 700);
   }
+  /* 登場後打招呼動作（防抖：追蹤閃爍重觸發不連發，5 秒內只打一次招呼） */
+  clearTimeout(greetTimers[ch.id]);
+  greetTimers[ch.id] = setTimeout(() => {
+    if (activeIds.includes(ch.id) && Date.now() - (lastGreet[ch.id] || 0) > 5000) {
+      lastGreet[ch.id] = Date.now();
+      charReact(ch.id, 'greet');
+    }
+  }, 750);
   const isNew = arpDiscover(ch.id);
   if (isNew) {
     showToast('🎉 收集到新夥伴：' + ch.name + '！');
@@ -291,7 +300,7 @@ function currentChar() {
 function talk(ch) {
   ch = ch || currentChar(); if (!ch) return;
   const aff = arpAffection(ch.id, 1);
-  charJump(ch.id);
+  charReact(ch.id, 'tap');
   arpSfx('pop'); arpVibrate(40);
   showBubble(ch.name, pickLine(ch.taps), '💗 好感度 ' + aff + '（Lv.' + arpLevel(aff) + '）', '', ch);
   arpTrack('character_tap', { character: ch.id, affection: aff });
@@ -306,7 +315,7 @@ function talk(ch) {
 function feed(ch) {
   ch = ch || currentChar(); if (!ch) return;
   arpFeed(ch.id);
-  charJump(ch.id);
+  charReact(ch.id, 'feed');
   arpSfx('yum'); arpVibrate([30, 30, 30]);
   const s = arpLoad().collected[ch.id];
   showBubble(ch.name, pickLine(ch.feeds), '🍡 已餵食 ' + s.fed + ' 次｜💗 好感度 ' + s.affection, '', ch);
@@ -350,6 +359,7 @@ document.getElementById('quest-list').addEventListener('click', e => {
   const q = questClaim(id);
   if (q) {
     arpSfx('found'); arpVibrate([40, 40, 80]);
+    activeIds.forEach(cid => charReact(cid, 'celebrate'));
     showToast('🎉 任務完成！+' + q.exp + ' EXP' + (q.item ? '，獲得新配件！' : ''));
     if (q.item) CHARACTERS.forEach(applyAccessories);
     arpTrack('quest_claim', { quest: id });
@@ -558,6 +568,8 @@ document.querySelectorAll('[data-close]').forEach(b =>
     anchor.addEventListener('targetFound', () => onFound(ch));
     anchor.addEventListener('targetLost', () => onLost(ch));
     charRoot.addEventListener('click', () => talk(ch));
+    /* 待機隨機動作+眨眼：只在角色被鏡頭追蹤到時動（省電） */
+    charAnimStart(ch, () => activeIds.includes(ch.id));
   });
 
   sceneEl.addEventListener('arReady', () => { setScanning(true); arpTrack('ar_ready', {}); });

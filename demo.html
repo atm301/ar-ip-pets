@@ -69,9 +69,10 @@ let bubbleTimer = null;
     stage.appendChild(wrap);
     arpDiscover(ch.id); // 展示模式直接全解鎖
     applyAccessories(ch);
+    charAnimStart(ch); // 待機隨機動作 + 眨眼
     c.addEventListener('click', () => {
       const aff = arpAffection(ch.id, 1);
-      charJump(ch.id);
+      charReact(ch.id, 'tap');
       arpSfx('pop'); arpVibrate(40);
       showBubble(ch.name, pickLine(ch.taps), '💗 好感度 ' + aff + '（Lv.' + arpLevel(aff) + '）');
       arpSpeak(ch, bubble.querySelector('.line').textContent);
