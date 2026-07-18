@@ -132,6 +132,7 @@ body { font-family:'Microsoft JhengHei','PingFang TC',sans-serif; overflow:hidde
   <div id="actions">
     <button class="pill primary" id="btn-talk">💬 說話</button>
     <button class="pill" id="btn-feed">🍡 餵食</button>
+    <button class="pill" id="btn-photo">📸 合照</button>
   </div>
 </div>
 
@@ -145,6 +146,17 @@ body { font-family:'Microsoft JhengHei','PingFang TC',sans-serif; overflow:hidde
     <a class="pill closebtn" id="lnk-map" href="map.html" style="display:block;text-align:center;text-decoration:none;line-height:28px;">🗺️ 地圖探索（找夥伴、打怪物）</a>
     <a class="pill closebtn" id="lnk-scan" href="scan.html" style="display:block;text-align:center;text-decoration:none;line-height:28px;">🧾 掃發票／序號領裝備</a>
     <a class="pill closebtn" id="lnk-targets" href="targets.html" style="display:block;text-align:center;text-decoration:none;line-height:28px;">🃏 開啟示範圖（給另一台裝置掃）</a>
+    <button class="pill closebtn" data-close>關閉</button>
+  </div>
+</div>
+
+<!-- 合照預覽 -->
+<div class="modal" id="modal-photo">
+  <div class="card" style="text-align:center;">
+    <h2>📸 跟夥伴的合照</h2>
+    <img id="photo-img" src="" alt="AR 合照" style="width:100%;border-radius:12px;">
+    <button class="pill primary closebtn" id="btn-photo-share">📤 分享</button>
+    <a class="pill closebtn" id="btn-photo-dl" download="ar-pet.jpg" style="display:block;text-decoration:none;text-align:center;line-height:28px;">⬇️ 下載</a>
     <button class="pill closebtn" data-close>關閉</button>
   </div>
 </div>
@@ -348,6 +360,46 @@ document.getElementById('quest-list').addEventListener('click', e => {
 document.getElementById('btn-talk').addEventListener('click', () => talk());
 document.getElementById('btn-feed').addEventListener('click', () => feed());
 
+/* 📸 合照：相機畫面 + 3D 角色合成一張圖 */
+function capturePhoto() {
+  const video = document.querySelector('video');
+  const glCanvas = sceneEl && sceneEl.canvas;
+  if (!video || !glCanvas) return;
+  const cw = glCanvas.width, chh = glCanvas.height;
+  const cv = document.createElement('canvas'); cv.width = cw; cv.height = chh;
+  const cx = cv.getContext('2d');
+  const vw = video.videoWidth, vh = video.videoHeight;
+  if (vw && vh) {
+    const s = Math.max(cw / vw, chh / vh);
+    cx.drawImage(video, (cw - vw * s) / 2, (chh - vh * s) / 2, vw * s, vh * s);
+  }
+  cx.drawImage(glCanvas, 0, 0, cw, chh);
+  cx.fillStyle = 'rgba(255,255,255,.9)';
+  cx.font = 'bold ' + Math.round(chh * 0.028) + 'px sans-serif';
+  cx.textAlign = 'center';
+  cx.shadowColor = 'rgba(0,0,0,.5)'; cx.shadowBlur = 6;
+  cx.fillText((window.ARP_BRAND ? (ARP_BRAND.name || '') + '｜' : '') + 'ar-ip-pets.zeabur.app', cw / 2, chh - Math.round(chh * 0.03));
+  const url = cv.toDataURL('image/jpeg', 0.9);
+  document.getElementById('photo-img').src = url;
+  document.getElementById('btn-photo-dl').href = url;
+  document.getElementById('modal-photo').style.display = 'flex';
+  arpSfx('found'); arpVibrate(60);
+  arpTrack('photo_capture', {}); arpCloudLog('photo_capture');
+}
+document.getElementById('btn-photo').addEventListener('click', capturePhoto);
+document.getElementById('btn-photo-share').addEventListener('click', async () => {
+  try {
+    const blob = await (await fetch(document.getElementById('photo-img').src)).blob();
+    const file = new File([blob], 'ar-pet.jpg', { type: 'image/jpeg' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: '我的 AR 夥伴', text: '掃產品就能喚醒角色！' });
+      arpTrack('photo_share', {});
+    } else {
+      document.getElementById('btn-photo-dl').click();
+    }
+  } catch (e) {}
+});
+
 /* 音效/語音開關 */
 const btnSound = document.getElementById('btn-sound');
 function renderSoundBtn() { btnSound.textContent = arpSoundOn() ? '🔊' : '🔇'; }
@@ -456,6 +508,14 @@ document.querySelectorAll('[data-close]').forEach(b =>
   renderSoundBtn();
   updateBookBadge();
   updateQuestBadge();
+  /* 每日簽到：今天第一次開 → +10 EXP */
+  if (localStorage.getItem('arp_checkin') !== arpToday()) {
+    localStorage.setItem('arp_checkin', arpToday());
+    const r = arpAddExp(10);
+    setTimeout(() => showToast('📅 每日簽到 +10 EXP！' + (r.levelUp ? ' 升到 Lv.' + r.level + '！' : '')), 1200);
+    arpTrack('daily_checkin', { level: r.level });
+    arpCloudLog('daily_checkin');
+  }
   /* 品牌模式：標題換品牌名、站內連結帶 ?b= */
   if (window.ARP_BRAND) {
     document.querySelector('#topbar h1').textContent = '🌟 ' + (ARP_BRAND.name || ARP_BRAND.slug);
@@ -473,7 +533,7 @@ document.querySelectorAll('[data-close]').forEach(b =>
   sceneEl.setAttribute('mindar-image',
     'imageTargetSrc: ' + arpTargetSrc() + '; maxTrack: 2; uiScanning: no; uiLoading: yes;');
   sceneEl.setAttribute('color-space', 'sRGB');
-  sceneEl.setAttribute('renderer', 'colorManagement: true, physicallyCorrectLights: true');
+  sceneEl.setAttribute('renderer', 'colorManagement: true, physicallyCorrectLights: true, preserveDrawingBuffer: true');
   sceneEl.setAttribute('vr-mode-ui', 'enabled: false');
   sceneEl.setAttribute('device-orientation-permission-ui', 'enabled: false');
 

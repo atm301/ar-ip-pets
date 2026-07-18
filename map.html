@@ -281,7 +281,19 @@ function winBattle() {
   document.getElementById('battle').style.display = 'none';
   arpCloudLog('battle_win', null, { monster: B.mon.name });
   try { if (window.gtag) gtag('event', 'battle_win', { monster: B.mon.name }); } catch (e) {}
-  finishSpawn(B.spawn, 'battle_win', exp, '⚔️ 打贏了' + B.mon.name + '！+' + exp + ' EXP');
+  /* 30% 機率掉落未擁有的配飾 */
+  let drop = '';
+  if (Math.random() < 0.3 && typeof arpUnlockItem === 'function') {
+    const pool = ['hat', 'bow', 'backpack', 'glasses'].filter(id => !arpItems().includes(id));
+    if (pool.length) {
+      const id = pool[Math.floor(Math.random() * pool.length)];
+      arpUnlockItem(id);
+      const names = { hat: '小紅帽🎩', bow: '蝴蝶結🎀', backpack: '小背包🎒', glasses: '圓框眼鏡👓' };
+      drop = '<br>🎁 ' + B.mon.name + '掉落了「' + names[id] + '」！';
+      arpCloudLog('battle_drop', null, { item: id });
+    }
+  }
+  finishSpawn(B.spawn, 'battle_win', exp, '⚔️ 打贏了' + B.mon.name + '！+' + exp + ' EXP' + drop);
   B = null;
 }
 function loseBattle() {

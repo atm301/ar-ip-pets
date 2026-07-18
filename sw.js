@@ -1,6 +1,6 @@
 /* AR IP 夥伴 Service Worker — 靜態資源 cache-first、設定檔 network-first
  * 部署有大改時 bump CACHE 版本 */
-const CACHE = 'arp-v1';
+const CACHE = 'arp-v2';
 const PRECACHE = [
   './', 'index.html', 'demo.html', 'map.html', 'scan.html', 'targets.html',
   'characters.js', 'characters.json', 'cloud.js', 'quests.js',
@@ -12,8 +12,9 @@ const PRECACHE = [
   'codex/images/items/acc-bow.webp', 'codex/images/items/acc-backpack.webp',
   'assets/demo-1.png', 'assets/demo-2.png', 'assets/demo-3.png'
 ];
-/* 每次都想拿最新版的（拿不到才用快取） */
-const NETWORK_FIRST = /characters\.json$|\.mind$/;
+/* 重資源（不常變）cache-first；其餘（HTML/app JS/設定檔）network-first，斷網才用快取
+ * 避免部署新版後使用者卡在舊快取 */
+const CACHE_FIRST = /\/(libs|codex|assets)\//;
 
 self.addEventListener('install', e => {
   e.waitUntil(
@@ -32,20 +33,19 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin) return; // 不碰 Supabase/GA/圖磚
-  if (NETWORK_FIRST.test(url.pathname)) {
+  if (CACHE_FIRST.test(url.pathname)) {
     e.respondWith(
-      fetch(e.request).then(r => {
-        const copy = r.clone();
-        caches.open(CACHE).then(c => c.put(e.request, copy));
+      caches.match(e.request).then(hit => hit || fetch(e.request).then(r => {
+        if (r.ok) { const copy = r.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); }
         return r;
-      }).catch(() => caches.match(e.request))
+      }))
     );
     return;
   }
   e.respondWith(
-    caches.match(e.request).then(hit => hit || fetch(e.request).then(r => {
+    fetch(e.request).then(r => {
       if (r.ok) { const copy = r.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); }
       return r;
-    }))
+    }).catch(() => caches.match(e.request))
   );
 });
