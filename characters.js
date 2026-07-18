@@ -7,13 +7,25 @@ let CHARACTERS = [];
 let DUO_SCRIPTS = [];
 let ACCESSORIES = [];
 
-/* 載入設定：優先用後台存在此裝置的自訂設定（arp_custom_chars），否則抓 characters.json */
+/* 載入設定，優先序：①雲端品牌（?b=slug）②此裝置自訂（後台「存到此裝置」）③預設 characters.json */
 async function arpLoadConfig() {
   let cfg = null;
-  try {
-    const custom = localStorage.getItem('arp_custom_chars');
-    if (custom) cfg = JSON.parse(custom);
-  } catch (e) {}
+  const slug = (typeof arpBrandSlug === 'function') ? arpBrandSlug() : '';
+  if (slug) {
+    try {
+      const brand = await arpFetchBrand(slug);
+      if (brand && brand.config && brand.config.characters && brand.config.characters.length) {
+        window.ARP_BRAND = brand;
+        cfg = brand.config;
+      }
+    } catch (e) {}
+  }
+  if (!cfg) {
+    try {
+      const custom = localStorage.getItem('arp_custom_chars');
+      if (custom) cfg = JSON.parse(custom);
+    } catch (e) {}
+  }
   if (!cfg) {
     const res = await fetch('characters.json');
     cfg = await res.json();
@@ -21,6 +33,14 @@ async function arpLoadConfig() {
   CHARACTERS = cfg.characters || [];
   DUO_SCRIPTS = cfg.duoScripts || [];
   ACCESSORIES = cfg.accessories || [];
+  // 雲端品牌若沒定義配件，沿用預設三件（序號/等級解鎖機制仍可用）
+  if (!ACCESSORIES.length && slug) {
+    ACCESSORIES = [
+      { id: 'hat', name: '小紅帽', code: 'HAT2026', desc: '序號兌換' },
+      { id: 'glasses', name: '圓框眼鏡', code: 'COOL123', desc: '序號兌換' },
+      { id: 'scarf', name: '好感圍巾', unlock: 'lv3', desc: '好感度 Lv.3 解鎖' }
+    ];
+  }
   return cfg;
 }
 
@@ -61,8 +81,11 @@ function applyAccessories(ch) {
 }
 function arpIsCustomMode() { return !!localStorage.getItem('arp_custom_chars') || !!localStorage.getItem('arp_custom_mind'); }
 function arpClearCustom() { localStorage.removeItem('arp_custom_chars'); localStorage.removeItem('arp_custom_mind'); }
-/* 後台編譯的 .mind（dataURL）；沒有就用預設檔 */
-function arpTargetSrc() { return localStorage.getItem('arp_custom_mind') || './targets/targets.mind'; }
+/* 辨識檔來源：①雲端品牌 mind_url ②此裝置自訂 ③預設檔 */
+function arpTargetSrc() {
+  if (window.ARP_BRAND && window.ARP_BRAND.mind_url) return window.ARP_BRAND.mind_url;
+  return localStorage.getItem('arp_custom_mind') || './targets/targets.mind';
+}
 
 /* ---------- 進度存檔（localStorage） ---------- */
 const ARP_KEY = 'arp_state_v1';

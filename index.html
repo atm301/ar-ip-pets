@@ -112,6 +112,7 @@ body { font-family:'Microsoft JhengHei','PingFang TC',sans-serif; overflow:hidde
   <h1>🐰 AR IP 夥伴</h1>
   <div style="display:flex;gap:8px;">
     <button class="pill" id="btn-sound" aria-label="切換音效與語音">🔊</button>
+    <button class="pill" id="btn-quests" aria-label="每日任務">📅<span id="quest-badge" style="display:none;color:#E03131;">●</span></button>
     <button class="pill" id="btn-book">📖 <span id="book-count"></span></button>
   </div>
 </div>
@@ -140,7 +141,18 @@ body { font-family:'Microsoft JhengHei','PingFang TC',sans-serif; overflow:hidde
     <h2>📖 角色圖鑑</h2>
     <div id="book-list"></div>
     <button class="pill primary closebtn" id="btn-duo" style="display:none;">✨ 播放隱藏劇情</button>
-    <a class="pill closebtn" href="targets.html" style="display:block;text-align:center;text-decoration:none;line-height:28px;">🃏 開啟示範圖（給另一台裝置掃）</a>
+    <a class="pill closebtn" id="lnk-map" href="map.html" style="display:block;text-align:center;text-decoration:none;line-height:28px;">🗺️ 地圖探索（找夥伴、打怪物）</a>
+    <a class="pill closebtn" id="lnk-scan" href="scan.html" style="display:block;text-align:center;text-decoration:none;line-height:28px;">🧾 掃發票／序號領裝備</a>
+    <a class="pill closebtn" id="lnk-targets" href="targets.html" style="display:block;text-align:center;text-decoration:none;line-height:28px;">🃏 開啟示範圖（給另一台裝置掃）</a>
+    <button class="pill closebtn" data-close>關閉</button>
+  </div>
+</div>
+
+<!-- 每日任務 -->
+<div class="modal" id="modal-quests">
+  <div class="card">
+    <h2>📅 每日任務 <span id="exp-line" style="font-size:13px;color:#987f8f;font-weight:400;"></span></h2>
+    <div id="quest-list"></div>
     <button class="pill closebtn" data-close>關閉</button>
   </div>
 </div>
@@ -153,7 +165,9 @@ body { font-family:'Microsoft JhengHei','PingFang TC',sans-serif; overflow:hidde
   </div>
 </div>
 
+<script src="cloud.js"></script>
 <script src="characters.js"></script>
+<script src="quests.js"></script>
 <script>
 const bubble = document.getElementById('bubble');
 const hint = document.getElementById('hint');
@@ -211,6 +225,8 @@ function onFound(ch) {
   setScanning(false);
   actions.style.display = 'flex';
   arpBumpScan(ch.id);
+  questBump('scan'); updateQuestBadge();
+  arpCloudLog('scan', ch.id);
   arpSfx('found'); arpVibrate([30, 40, 60]);
   const rootEl = document.getElementById('char-' + ch.id);
   if (rootEl) {
@@ -223,6 +239,7 @@ function onFound(ch) {
   if (isNew) {
     showToast('🎉 收集到新夥伴：' + ch.name + '！');
     arpTrack('character_discovered', { character: ch.id });
+    arpCloudLog('character_discovered', ch.id);
     const n = arpCollectedCount();
     if (n === 2) {
       arpTrack('collect_second', { character: ch.id }); /* 3-2 回購代理指標 */
@@ -265,6 +282,7 @@ function talk(ch) {
   arpSfx('pop'); arpVibrate(40);
   showBubble(ch.name, pickLine(ch.taps), '💗 好感度 ' + aff + '（Lv.' + arpLevel(aff) + '）', '', ch);
   arpTrack('character_tap', { character: ch.id, affection: aff });
+  questBump('talk'); updateQuestBadge();
   /* 紙娃娃雛形：好感度 Lv.3 解鎖圍巾，角色外觀直接改變 */
   if (arpLevel(aff) >= 3 && arpUnlockItem('scarf')) {
     setTimeout(() => showToast('✨ 好感度 Lv.3！獲得配件「好感圍巾」'), 800);
@@ -280,7 +298,52 @@ function feed(ch) {
   const s = arpLoad().collected[ch.id];
   showBubble(ch.name, pickLine(ch.feeds), '🍡 已餵食 ' + s.fed + ' 次｜💗 好感度 ' + s.affection, '', ch);
   arpTrack('character_feed', { character: ch.id });
+  questBump('feed'); updateQuestBadge();
+  arpCloudLog('character_feed', ch.id);
 }
+
+/* ---- 每日任務 UI ---- */
+function updateQuestBadge() {
+  document.getElementById('quest-badge').style.display = questClaimable() > 0 ? 'inline' : 'none';
+}
+function renderQuests() {
+  const s = arpQuestState();
+  const bar = arpExpBar();
+  document.getElementById('exp-line').textContent =
+    '玩家 Lv.' + bar.level + '｜EXP ' + bar.cur + '/' + bar.next;
+  const list = document.getElementById('quest-list');
+  list.innerHTML = '';
+  ARP_QUESTS.forEach(q => {
+    const prog = Math.min(q.target, s.prog[q.id] || 0);
+    const claimed = s.claimed.includes(q.id);
+    const done = prog >= q.target;
+    const row = document.createElement('div');
+    row.className = 'charrow' + (claimed ? ' locked' : '');
+    row.innerHTML = '<div class="dot" style="background:#FFE06633">' + (claimed ? '✅' : done ? '🎁' : '⏳') + '</div>' +
+      '<div class="info"><b>' + q.name + '</b>' +
+      '<p>' + prog + '/' + q.target + '｜獎勵 ' + q.exp + ' EXP' + (q.item ? '＋配件' : '') + '</p></div>' +
+      (done && !claimed ? '<button class="pill primary" data-claim="' + q.id + '">領取</button>' : '');
+    list.appendChild(row);
+  });
+}
+document.getElementById('btn-quests').addEventListener('click', () => {
+  renderQuests();
+  document.getElementById('modal-quests').style.display = 'flex';
+  arpTrack('open_quests', {});
+});
+document.getElementById('quest-list').addEventListener('click', e => {
+  const id = e.target.dataset.claim;
+  if (!id) return;
+  const q = questClaim(id);
+  if (q) {
+    arpSfx('found'); arpVibrate([40, 40, 80]);
+    showToast('🎉 任務完成！+' + q.exp + ' EXP' + (q.item ? '，獲得新配件！' : ''));
+    if (q.item) CHARACTERS.forEach(applyAccessories);
+    arpTrack('quest_claim', { quest: id });
+    arpCloudLog('quest_claim', null, { quest: id });
+    renderQuests(); updateQuestBadge();
+  }
+});
 document.getElementById('btn-talk').addEventListener('click', () => talk());
 document.getElementById('btn-feed').addEventListener('click', () => feed());
 
@@ -358,6 +421,7 @@ function playDuo(idA, idB) {
     }, i * 2200);
   });
   arpTrack('duo_scene', { pair: script.pair.join('_') });
+  arpCloudLog('duo_scene', null, { pair: script.pair.join('_') });
 }
 document.getElementById('btn-duo').addEventListener('click', () => playDuo());
 
@@ -369,7 +433,16 @@ document.querySelectorAll('[data-close]').forEach(b =>
   await arpLoadConfig();
   renderSoundBtn();
   updateBookBadge();
-  if (arpIsCustomMode()) document.getElementById('custombar').style.display = 'block';
+  updateQuestBadge();
+  /* 品牌模式：標題換品牌名、站內連結帶 ?b= */
+  if (window.ARP_BRAND) {
+    document.querySelector('#topbar h1').textContent = '🌟 ' + (ARP_BRAND.name || ARP_BRAND.slug);
+    ['lnk-map', 'lnk-scan', 'lnk-targets'].forEach(id => {
+      const a = document.getElementById(id);
+      a.href = arpLink(a.getAttribute('href'));
+    });
+  }
+  if (arpIsCustomMode() && !window.ARP_BRAND) document.getElementById('custombar').style.display = 'block';
   document.getElementById('btn-clear-custom').addEventListener('click', () => {
     arpClearCustom(); location.reload();
   });
@@ -427,6 +500,7 @@ document.querySelectorAll('[data-close]').forEach(b =>
       setTimeout(() => showToast(isNew ? '🎁 獲得新配件：' + acc.name + '！' : 'ℹ️ 配件已擁有：' + acc.name), 800);
       CHARACTERS.forEach(applyAccessories);
       arpTrack('gift_redeem', { item: acc.id, is_new: isNew });
+      arpCloudLog('gift_redeem', null, { item: acc.id });
     } else {
       setTimeout(() => showToast('❓ 序號無效'), 800);
     }

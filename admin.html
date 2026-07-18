@@ -63,7 +63,9 @@ th, td { text-align:left; padding:8px 10px; border-bottom:1px solid #f5dfe8; }
 <div class="tabs">
   <button class="on" data-tab="t1">① 品牌與產品圖</button>
   <button data-tab="t2">② IP 角色設定</button>
-  <button data-tab="t3">③ 數據</button>
+  <button data-tab="t5">③ 地圖據點</button>
+  <button data-tab="t4">④ 雲端發佈</button>
+  <button data-tab="t3">⑤ 數據</button>
 </div>
 <main>
 
@@ -107,7 +109,55 @@ th, td { text-align:left; padding:8px 10px; border-bottom:1px solid #f5dfe8; }
   <div class="note">📌 「存到此裝置」= 立即在這支手機的前台生效（自訂模式）；「下載 characters.json」= 交給工程師 push 上線，全部使用者生效。</div>
 </section>
 
-<!-- ③ 數據 -->
+<!-- ③ 地圖據點（P4） -->
+<section class="panel" id="t5">
+  <h2>地圖據點（門市/活動點 → 顧客到點觸發夥伴或怪物）</h2>
+  <p class="help">點地圖新增據點（例如你的門市）。顧客開「🗺️ 地圖探索」走進半徑內就會觸發遭遇。
+  沒設定據點時，前台會在玩家附近隨機生成示範點。設定完記得到「④ 雲端發佈」儲存。</p>
+  <div id="spawn-map" style="height:340px;border-radius:12px;"></div>
+  <div id="spawn-list" style="margin-top:10px;"></div>
+</section>
+
+<!-- ④ 雲端發佈（P2） -->
+<section class="panel" id="t4">
+  <h2>帳號</h2>
+  <div id="auth-box">
+    <div class="row">
+      <input type="text" id="auth-email" placeholder="email" style="flex:2;min-width:180px;" autocomplete="username">
+      <input type="text" id="auth-pass" placeholder="密碼（至少 6 碼）" style="flex:1;min-width:130px;" autocomplete="current-password">
+    </div>
+    <div class="row" style="margin-top:8px;">
+      <button class="btn" id="btn-login">登入</button>
+      <button class="btn ghost" id="btn-signup">註冊新帳號</button>
+    </div>
+  </div>
+  <div id="user-box" style="display:none;">
+    <p class="help">已登入：<b id="user-email"></b> <button class="btn ghost" id="btn-logout" style="padding:6px 14px;min-height:36px;">登出</button></p>
+    <h2>我的品牌</h2>
+    <div class="row">
+      <select id="brand-select" style="flex:1;min-width:200px;"><option value="">— 選擇品牌 —</option></select>
+    </div>
+    <div class="row" style="margin-top:8px;">
+      <input type="text" id="new-slug" placeholder="新品牌代號（小寫英數，如 mybrand）" style="flex:2;min-width:180px;">
+      <button class="btn ghost" id="btn-create-brand">➕ 建立品牌</button>
+    </div>
+    <div id="brand-box" style="display:none;">
+      <h2>儲存與發佈</h2>
+      <p class="help">「儲存到雲端」會把 ①②③ 分頁目前的設定（品牌故事、角色、據點）整包存上去；
+      有編譯辨識檔的話按「上傳辨識檔」。發佈後顧客網址：<b id="front-url"></b></p>
+      <div class="row">
+        <button class="btn" id="btn-cloud-save">☁️ 儲存到雲端</button>
+        <button class="btn ghost" id="btn-upload-mind" disabled>⬆️ 上傳辨識檔（先在①編譯）</button>
+        <button class="btn ghost" id="btn-publish">🚀 發佈</button>
+      </div>
+      <p class="help" id="cloud-status"></p>
+    </div>
+  </div>
+  <div class="note">📌 2D→3D 自動轉模（Tripo AI）與角色 AI 對話（Claude）需要 API 金鑰與代理服務，
+  接口已預留，等金鑰申請好即可接上。</div>
+</section>
+
+<!-- ⑤ 數據 -->
 <section class="panel" id="t3">
   <h2>掃描數據（此裝置）</h2>
   <p class="help">各產品在<b>這台裝置</b>被掃到的次數。全站數據請看
@@ -120,7 +170,11 @@ th, td { text-align:left; padding:8px 10px; border-bottom:1px solid #f5dfe8; }
 </main>
 <div id="toast" role="status" aria-live="polite"></div>
 
+<script src="cloud.js"></script>
 <script src="characters.js"></script>
+<script src="libs/supabase.js"></script>
+<link rel="stylesheet" href="libs/leaflet.css">
+<script src="libs/leaflet.js"></script>
 <script type="module">
 import './libs/mindar-image.prod.js';
 
@@ -192,6 +246,8 @@ $('btn-compile').addEventListener('click', async () => {
     $('prog-text').textContent = '✅ 編譯完成！大小 ' + Math.round(state.mindBuffer.byteLength / 1024) + ' KB';
     $('btn-save-mind').disabled = false;
     $('btn-dl-mind').disabled = false;
+    $('btn-upload-mind').disabled = false;
+    $('btn-upload-mind').textContent = '⬆️ 上傳辨識檔';
   } catch (err) {
     $('prog-text').textContent = '❌ 編譯失敗：' + err.message;
   }
@@ -289,7 +345,7 @@ $('btn-add-ch').addEventListener('click', () => {
 });
 function exportConfig() {
   brand = { name: $('brand-name').value.trim(), story: $('brand-story').value.trim() };
-  return { brand, characters: chars, duoScripts: DUO_SCRIPTS };
+  return { brand, characters: chars, duoScripts: DUO_SCRIPTS, accessories: ACCESSORIES, spawns: spawns };
 }
 $('btn-save-chars').addEventListener('click', () => {
   try {
@@ -321,7 +377,168 @@ $('btn-clear-state').addEventListener('click', () => {
   localStorage.removeItem('arp_state_v1'); localStorage.removeItem('arp_stats');
   renderStats(); toast('已清除此裝置遊戲進度');
 });
-document.querySelector('[data-tab=t3]').addEventListener('click', renderStats);
+document.querySelector('[data-tab=t3]').addEventListener('click', () => renderStats());
+
+/* ================= P4 地圖據點編輯器 ================= */
+let spawns = [];
+let spawnMap = null, spawnMarkers = [];
+function initSpawnMap() {
+  if (spawnMap) { setTimeout(() => spawnMap.invalidateSize(), 100); return; }
+  spawnMap = L.map('spawn-map').setView([25.0478, 121.5170], 14);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' }).addTo(spawnMap);
+  if (navigator.geolocation) navigator.geolocation.getCurrentPosition(
+    p => spawnMap.setView([p.coords.latitude, p.coords.longitude], 15), () => {});
+  spawnMap.on('click', e => {
+    spawns.push({ lat: +e.latlng.lat.toFixed(6), lng: +e.latlng.lng.toFixed(6), radius: 50, type: 'partner', name: '據點 ' + (spawns.length + 1) });
+    renderSpawnList();
+  });
+  setTimeout(() => spawnMap.invalidateSize(), 100);
+}
+function renderSpawnList() {
+  spawnMarkers.forEach(m => spawnMap && spawnMap.removeLayer(m));
+  spawnMarkers = [];
+  const ICONS = { monster: '👾', partner: '🐰', chest: '🎁' };
+  const box = $('spawn-list'); box.innerHTML = '';
+  spawns.forEach((s, i) => {
+    if (spawnMap) {
+      const mk = L.marker([s.lat, s.lng], { icon: L.divIcon({ className: '', html: '<div style="font-size:26px;">' + ICONS[s.type] + '</div>', iconSize: [26, 26] }) }).addTo(spawnMap);
+      const ci = L.circle([s.lat, s.lng], { radius: s.radius, color: '#FF7FA5', weight: 1, fillOpacity: 0.12 }).addTo(spawnMap);
+      spawnMarkers.push(mk, ci);
+    }
+    const div = document.createElement('div');
+    div.className = 'imgcard';
+    div.innerHTML = '<div class="inf"><div class="row">' +
+      '<input type="text" value="' + s.name + '" data-sf="name" data-si="' + i + '" style="flex:2;min-width:120px;">' +
+      '<select data-sf="type" data-si="' + i + '" style="flex:1;min-width:110px;">' +
+      '<option value="partner"' + (s.type === 'partner' ? ' selected' : '') + '>🐰 夥伴（領任務）</option>' +
+      '<option value="monster"' + (s.type === 'monster' ? ' selected' : '') + '>👾 怪物（遭遇戰）</option>' +
+      '<option value="chest"' + (s.type === 'chest' ? ' selected' : '') + '>🎁 寶箱</option></select>' +
+      '<input type="text" value="' + s.radius + '" data-sf="radius" data-si="' + i + '" style="width:70px;" title="觸發半徑（公尺）">' +
+      '<button class="btn ghost" data-sdel="' + i + '" type="button">🗑️</button>' +
+      '</div><small>' + s.lat + ', ' + s.lng + '</small></div>';
+    box.appendChild(div);
+  });
+}
+$('spawn-list').addEventListener('input', e => {
+  const f = e.target.dataset.sf, i = +e.target.dataset.si;
+  if (f === undefined || isNaN(i)) return;
+  spawns[i][f] = f === 'radius' ? Math.max(20, +e.target.value || 50) : e.target.value;
+  if (f !== 'name') renderSpawnList();
+});
+$('spawn-list').addEventListener('click', e => {
+  if (e.target.dataset.sdel !== undefined) { spawns.splice(+e.target.dataset.sdel, 1); renderSpawnList(); }
+});
+document.querySelector('[data-tab=t5]').addEventListener('click', () => { initSpawnMap(); renderSpawnList(); });
+
+/* ================= P2 雲端（Supabase 多租戶） ================= */
+const sb = window.supabase.createClient(ARP_SUPA_URL, ARP_ANON);
+let me = null, myBrands = [], activeBrand = null;
+
+function cloudStatus(msg) { $('cloud-status').textContent = msg; }
+async function refreshAuthUI() {
+  const { data } = await sb.auth.getSession();
+  me = data.session ? data.session.user : null;
+  $('auth-box').style.display = me ? 'none' : 'block';
+  $('user-box').style.display = me ? 'block' : 'none';
+  if (me) { $('user-email').textContent = me.email; await loadBrands(); }
+}
+$('btn-login').addEventListener('click', async () => {
+  const { error } = await sb.auth.signInWithPassword({ email: $('auth-email').value.trim(), password: $('auth-pass').value });
+  if (error) return toast('❌ ' + error.message);
+  toast('✅ 登入成功'); refreshAuthUI();
+});
+$('btn-signup').addEventListener('click', async () => {
+  const { error } = await sb.auth.signUp({ email: $('auth-email').value.trim(), password: $('auth-pass').value });
+  if (error) return toast('❌ ' + error.message);
+  toast('✅ 註冊成功！請到信箱點驗證連結，再回來登入'); refreshAuthUI();
+});
+$('btn-logout').addEventListener('click', async () => { await sb.auth.signOut(); activeBrand = null; refreshAuthUI(); });
+
+async function loadBrands() {
+  const { data, error } = await sb.from('arp_brands').select('*').eq('owner_id', me.id).order('created_at');
+  if (error) return toast('❌ 讀品牌失敗：' + error.message);
+  myBrands = data || [];
+  const sel = $('brand-select');
+  sel.innerHTML = '<option value="">— 選擇品牌 —</option>' +
+    myBrands.map(b => '<option value="' + b.id + '">' + b.slug + (b.published ? '（已發佈）' : '（未發佈）') + '</option>').join('');
+}
+$('btn-create-brand').addEventListener('click', async () => {
+  const slug = $('new-slug').value.trim().toLowerCase();
+  if (!/^[a-z0-9-]{2,30}$/.test(slug)) return toast('❌ 代號限小寫英數與 -（2~30 字）');
+  const { error } = await sb.from('arp_brands').insert({ slug, name: slug, owner_id: me.id });
+  if (error) return toast('❌ ' + (error.code === '23505' ? '代號已被使用' : error.message));
+  toast('✅ 品牌已建立'); $('new-slug').value = '';
+  await loadBrands();
+});
+$('brand-select').addEventListener('change', async e => {
+  activeBrand = myBrands.find(b => b.id === e.target.value) || null;
+  $('brand-box').style.display = activeBrand ? 'block' : 'none';
+  if (!activeBrand) return;
+  // 把雲端設定載回編輯器
+  const cfg = activeBrand.config || {};
+  if (cfg.characters && cfg.characters.length) { chars = cfg.characters; renderChars(); }
+  if (cfg.brand) { $('brand-name').value = cfg.brand.name || ''; $('brand-story').value = cfg.brand.story || ''; }
+  spawns = cfg.spawns || []; renderSpawnList();
+  const url = location.origin + '/?b=' + activeBrand.slug;
+  $('front-url').innerHTML = '<a href="' + url + '" target="_blank">' + url + '</a>';
+  $('btn-publish').textContent = activeBrand.published ? '⏸️ 取消發佈' : '🚀 發佈';
+  cloudStatus(activeBrand.mind_url ? '已上傳辨識檔 ✅' : '尚未上傳辨識檔（顧客掃描前必須上傳）');
+});
+$('btn-cloud-save').addEventListener('click', async () => {
+  if (!activeBrand) return;
+  const cfg = exportConfig();
+  const { error } = await sb.from('arp_brands')
+    .update({ config: cfg, name: cfg.brand.name || activeBrand.slug })
+    .eq('id', activeBrand.id);
+  if (error) return toast('❌ 儲存失敗：' + error.message);
+  activeBrand.config = cfg;
+  toast('✅ 已儲存到雲端');
+});
+$('btn-upload-mind').addEventListener('click', async () => {
+  if (!activeBrand || !state.mindBuffer) return;
+  cloudStatus('上傳中…');
+  const path = activeBrand.id + '/targets.mind';
+  const { error } = await sb.storage.from('arp-assets')
+    .upload(path, new Blob([state.mindBuffer]), { upsert: true, contentType: 'application/octet-stream' });
+  if (error) { cloudStatus(''); return toast('❌ 上傳失敗：' + error.message); }
+  const { data } = sb.storage.from('arp-assets').getPublicUrl(path);
+  const url = data.publicUrl + '?v=' + Date.now();
+  const { error: e2 } = await sb.from('arp_brands').update({ mind_url: url }).eq('id', activeBrand.id);
+  if (e2) return toast('❌ ' + e2.message);
+  activeBrand.mind_url = url;
+  cloudStatus('已上傳辨識檔 ✅');
+  toast('✅ 辨識檔已上傳');
+});
+$('btn-publish').addEventListener('click', async () => {
+  if (!activeBrand) return;
+  const to = !activeBrand.published;
+  if (to && !activeBrand.mind_url) return toast('❌ 請先上傳辨識檔再發佈');
+  const { error } = await sb.from('arp_brands').update({ published: to }).eq('id', activeBrand.id);
+  if (error) return toast('❌ ' + error.message);
+  activeBrand.published = to;
+  $('btn-publish').textContent = to ? '⏸️ 取消發佈' : '🚀 發佈';
+  toast(to ? '🚀 已發佈！顧客可以掃了' : '已取消發佈');
+});
+
+/* 數據分頁：有選品牌時加載雲端事件統計 */
+const _renderStatsLocal = renderStats;
+renderStats = async function () {
+  _renderStatsLocal();
+  if (!activeBrand || !me) return;
+  const { data, error } = await sb.from('arp_events')
+    .select('event, character_id').eq('brand_slug', activeBrand.slug)
+    .order('created_at', { ascending: false }).limit(2000);
+  if (error || !data) return;
+  const agg = {};
+  data.forEach(r => { agg[r.event] = (agg[r.event] || 0) + 1; });
+  const tb = document.querySelector('#stats-table tbody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = '<td colspan="4" style="background:#fff4e6;"><b>☁️ 雲端（' + activeBrand.slug + '，近 2000 筆）</b><br>' +
+    Object.keys(agg).sort().map(k => k + '：' + agg[k]).join('｜') + '</td>';
+  tb.appendChild(tr);
+};
+
+refreshAuthUI();
 
 loadChars();
 </script>

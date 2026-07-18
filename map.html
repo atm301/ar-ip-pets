@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>地圖探索 — AR IP 夥伴</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🗺️</text></svg>">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-RDJD1YVHR7"></script>
+<script>
+window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
+gtag('js',new Date());gtag('config','G-RDJD1YVHR7');
+</script>
+<link rel="stylesheet" href="libs/leaflet.css">
+<script src="libs/leaflet.js"></script>
+<style>
+:root { --brand-primary:#FF7FA5; --brand-dark:#4A3B47; --brand-bg:#FFF7FA; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Microsoft JhengHei','PingFang TC',sans-serif; }
+#map { position:fixed; inset:0; z-index:1; }
+#topbar { position:fixed; z-index:20; top:0; left:0; right:0; display:flex; justify-content:space-between;
+  align-items:center; padding:10px 14px; padding-top:calc(10px + env(safe-area-inset-top));
+  background:linear-gradient(rgba(0,0,0,.45),transparent); color:#fff; pointer-events:none; }
+#topbar > * { pointer-events:auto; }
+#topbar h1 { font-size:16px; text-shadow:0 1px 4px rgba(0,0,0,.6); }
+.pill { border:none; border-radius:999px; padding:8px 14px; font-size:14px; font-weight:700;
+  background:#fff; color:var(--brand-dark); cursor:pointer; min-height:44px; text-decoration:none; display:inline-block; }
+.pill.primary { background:var(--brand-primary); color:#fff; }
+#expbar { position:fixed; z-index:20; top:62px; left:50%; transform:translateX(-50%);
+  background:rgba(0,0,0,.55); color:#fff; font-size:13px; font-weight:700; padding:6px 16px; border-radius:999px; }
+#sheet { display:none; position:fixed; z-index:25; bottom:0; left:0; right:0;
+  background:#fff; border-radius:20px 20px 0 0; padding:16px 18px calc(18px + env(safe-area-inset-bottom));
+  box-shadow:0 -4px 20px rgba(0,0,0,.2); text-align:center; }
+#sheet .big { font-size:40px; }
+#sheet b { color:var(--brand-dark); font-size:16px; display:block; margin:4px 0; }
+#sheet p { color:#987f8f; font-size:13px; line-height:1.7; }
+#sheet button, #sheet a { margin-top:10px; width:100%; }
+/* 戰鬥 */
+#battle { display:none; position:fixed; inset:0; z-index:40; background:rgba(30,20,28,.92);
+  align-items:center; justify-content:center; padding:20px; }
+#battle .card { width:100%; max-width:440px; text-align:center; color:#fff; }
+.fighter { font-size:64px; margin:6px 0; transition:transform .15s; }
+.fighter.hit { transform:scale(.8) rotate(-12deg); }
+.hpwrap { background:rgba(255,255,255,.2); border-radius:999px; height:14px; overflow:hidden; margin:6px auto 2px; max-width:300px; }
+.hp { background:linear-gradient(90deg,#51cf66,#94d82d); height:100%; width:100%; transition:width .3s; border-radius:999px; }
+.hp.low { background:linear-gradient(90deg,#ff6b6b,#fa5252); }
+#blog { min-height:44px; font-size:14px; line-height:1.6; margin:10px 0; color:#ffd9e5; }
+#bbtns { display:flex; gap:10px; justify-content:center; flex-wrap:wrap; }
+#bbtns .pill { flex:1; min-width:96px; }
+.leaflet-container { font-family:inherit; }
+.emoji-pin { font-size:30px; text-shadow:0 2px 4px rgba(0,0,0,.35); }
+.player-pin { font-size:34px; filter:drop-shadow(0 2px 4px rgba(0,0,0,.4)); }
+#simhint { position:fixed; z-index:20; bottom:12px; left:50%; transform:translateX(-50%);
+  background:rgba(0,0,0,.55); color:#fff; font-size:12px; padding:6px 14px; border-radius:999px; }
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="topbar"><h1>🗺️ 地圖探索</h1><a class="pill" id="lnk-back" href="index.html">← 回夥伴</a></div>
+<div id="expbar">Lv.1</div>
+<div id="simhint" style="display:none;">🧪 模擬模式：點地圖移動位置</div>
+
+<div id="sheet">
+  <div class="big" id="s-icon">👾</div>
+  <b id="s-name"></b>
+  <p id="s-desc"></p>
+  <button class="pill primary" id="s-go"></button>
+  <button class="pill" id="s-close">先不要</button>
+</div>
+
+<div id="battle"><div class="card">
+  <div>👾 <span id="m-name"></span>（Lv.<span id="m-lv"></span>）</div>
+  <div class="fighter" id="m-emoji">👾</div>
+  <div class="hpwrap"><div class="hp" id="m-hp"></div></div>
+  <div style="font-size:12px;opacity:.8;">敵方 HP</div>
+  <div class="fighter" id="p-emoji">🐰</div>
+  <div class="hpwrap"><div class="hp" id="p-hp"></div></div>
+  <div style="font-size:12px;opacity:.8;">我方 HP（夥伴好感度越高攻擊越強）</div>
+  <div id="blog">遭遇戰開始！</div>
+  <div id="bbtns">
+    <button class="pill primary" id="b-atk">⚔️ 攻擊</button>
+    <button class="pill" id="b-ult">💥 必殺（限 1 次）</button>
+    <button class="pill" id="b-run">🏃 逃跑</button>
+  </div>
+</div></div>
+
+<script src="cloud.js"></script>
+<script src="characters.js"></script>
+<script src="quests.js"></script>
+<script>
+const MONSTERS = [
+  { name: '迷路史萊姆', emoji: '🟢' }, { name: '暴走野豬', emoji: '🐗' },
+  { name: '搗蛋烏鴉', emoji: '🐦‍⬛' }, { name: '瞌睡石頭人', emoji: '🪨' }
+];
+let map, playerMarker, playerPos = null, spawns = [], spawnLayers = {}, activeSpawn = null, simMode = false;
+
+function expLine() {
+  const b = arpExpBar();
+  document.getElementById('expbar').textContent = '玩家 Lv.' + b.level + '｜EXP ' + b.cur + '/100';
+}
+function dist(a, b) {
+  const R = 6371000, dLat = (b.lat - a.lat) * Math.PI / 180, dLng = (b.lng - a.lng) * Math.PI / 180;
+  const s = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(s));
+}
+function todayKey() { return 'arp_map_' + arpToday() + '_' + (arpBrandSlug() || 'demo'); }
+function doneList() { try { return JSON.parse(localStorage.getItem(todayKey() + '_done')) || []; } catch (e) { return []; } }
+function markDone(id) { const d = doneList(); d.push(id); localStorage.setItem(todayKey() + '_done', JSON.stringify(d)); }
+
+/* 出沒點：品牌後台設定優先；沒有就在玩家附近隨機生 4 點（每日固定） */
+function buildSpawns(center, brandSpawns) {
+  if (brandSpawns && brandSpawns.length) {
+    return brandSpawns.map((s, i) => ({ id: 'b' + i, lat: +s.lat, lng: +s.lng, radius: +s.radius || 50,
+      type: s.type || 'partner', name: s.name || '品牌據點' }));
+  }
+  let cached = null;
+  try { cached = JSON.parse(localStorage.getItem(todayKey())); } catch (e) {}
+  if (cached) return cached;
+  const list = [];
+  const types = [['monster', '野生怪物'], ['monster', '野生怪物'], ['partner', '夥伴出沒'], ['chest', '神秘寶箱']];
+  types.forEach(([type, name], i) => {
+    const ang = Math.random() * Math.PI * 2, d = 90 + Math.random() * 160; // 90~250m
+    list.push({ id: 'd' + i, type, name,
+      lat: center.lat + (d * Math.cos(ang)) / 111320,
+      lng: center.lng + (d * Math.sin(ang)) / (111320 * Math.cos(center.lat * Math.PI / 180)),
+      radius: 45 });
+  });
+  localStorage.setItem(todayKey(), JSON.stringify(list));
+  return list;
+}
+const ICONS = { monster: '👾', partner: '🐰', chest: '🎁' };
+
+function renderSpawns() {
+  const done = doneList();
+  spawns.forEach(s => {
+    if (spawnLayers[s.id]) { spawnLayers[s.id].forEach(l => map.removeLayer(l)); }
+    if (done.includes(s.id)) { spawnLayers[s.id] = []; return; }
+    const mk = L.marker([s.lat, s.lng], { icon: L.divIcon({ className: 'emoji-pin', html: ICONS[s.type] || '📍', iconSize: [30, 30] }) }).addTo(map);
+    const cir = L.circle([s.lat, s.lng], { radius: s.radius, color: '#FF7FA5', weight: 1, fillOpacity: 0.12 }).addTo(map);
+    spawnLayers[s.id] = [mk, cir];
+  });
+}
+
+function checkNearby() {
+  if (!playerPos) return;
+  const done = doneList();
+  const near = spawns.find(s => !done.includes(s.id) && dist(playerPos, s) <= s.radius);
+  const sheet = document.getElementById('sheet');
+  if (!near) { sheet.style.display = 'none'; activeSpawn = null; return; }
+  if (activeSpawn && activeSpawn.id === near.id) return;
+  activeSpawn = near;
+  document.getElementById('s-icon').textContent = ICONS[near.type];
+  document.getElementById('s-name').textContent = near.name;
+  document.getElementById('s-desc').textContent =
+    near.type === 'monster' ? '有怪物擋路！打贏可以獲得 EXP。' :
+    near.type === 'partner' ? '夥伴在這裡等你，跟牠說話可以領任務。' : '打開看看有什麼！';
+  document.getElementById('s-go').textContent =
+    near.type === 'monster' ? '⚔️ 開戰！' : near.type === 'partner' ? '💬 說話' : '🎁 打開';
+  sheet.style.display = 'block';
+  arpSfx('found'); arpVibrate([40, 60, 40]);
+}
+document.getElementById('s-close').addEventListener('click', () => {
+  document.getElementById('sheet').style.display = 'none';
+});
+document.getElementById('s-go').addEventListener('click', () => {
+  const s = activeSpawn; if (!s) return;
+  document.getElementById('sheet').style.display = 'none';
+  if (s.type === 'monster') startBattle(s);
+  else if (s.type === 'partner') partnerTalk(s);
+  else openChest(s);
+});
+
+/* ---- 夥伴任務 ---- */
+async function partnerTalk(s) {
+  await arpLoadConfig();
+  const ch = CHARACTERS[0] || { name: '夥伴', voice: {} };
+  const missions = [
+    '今天到店裡消費，掃發票回報給我，有獎勵喔！',
+    '幫我看看店裡的新產品，掃它一下！',
+    '把我們的故事分享給一個朋友吧！'
+  ];
+  const line = missions[Math.floor(Math.random() * missions.length)];
+  arpSpeak(ch, line);
+  finishSpawn(s, 'partner_talk', 20, '💬 ' + ch.name + '：「' + line + '」<br>+20 EXP！去 🧾 掃發票完成任務吧。');
+}
+/* ---- 寶箱 ---- */
+function openChest(s) {
+  const roll = Math.random();
+  let bonus = '';
+  if (roll < 0.4 && typeof arpUnlockItem === 'function' && arpUnlockItem('hat')) bonus = '＋獲得配件「小紅帽」🎩';
+  finishSpawn(s, 'chest_open', 25, '🎁 寶箱打開了！+25 EXP ' + bonus);
+}
+function finishSpawn(s, event, exp, html) {
+  markDone(s.id); renderSpawns();
+  const r = arpAddExp(exp);
+  questBump('encounter');
+  expLine();
+  arpCloudLog(event, null, { spawn: s.name });
+  const sheet = document.getElementById('sheet');
+  document.getElementById('s-icon').textContent = '🎉';
+  document.getElementById('s-name').textContent = r.levelUp ? '升級！玩家 Lv.' + r.level : '完成！';
+  document.getElementById('s-desc').innerHTML = html;
+  document.getElementById('s-go').textContent = '繼續探索';
+  sheet.style.display = 'block';
+  activeSpawn = { id: '__done__' };
+  document.getElementById('s-go').onclick = () => { sheet.style.display = 'none'; document.getElementById('s-go').onclick = null; resetGoBtn(); };
+}
+function resetGoBtn() {
+  const btn = document.getElementById('s-go');
+  const clone = btn.cloneNode(true); btn.parentNode.replaceChild(clone, btn);
+  clone.addEventListener('click', () => {
+    const s = activeSpawn; if (!s || s.id === '__done__') { document.getElementById('sheet').style.display = 'none'; return; }
+    document.getElementById('sheet').style.display = 'none';
+    if (s.type === 'monster') startBattle(s);
+    else if (s.type === 'partner') partnerTalk(s);
+    else openChest(s);
+  });
+}
+
+/* ---- 回合制遭遇戰 ---- */
+let B = null;
+function affTotal() {
+  const c = arpLoad().collected; let t = 0;
+  Object.keys(c).forEach(k => t += c[k].affection || 0);
+  return t;
+}
+function startBattle(s) {
+  const mon = MONSTERS[Math.floor(Math.random() * MONSTERS.length)];
+  const lv = arpPlayerLevel();
+  B = { spawn: s, mon, mLv: Math.max(1, lv + (Math.random() < 0.5 ? 0 : 1)), ultUsed: false };
+  B.mMax = 30 + B.mLv * 12; B.mHp = B.mMax;
+  B.pMax = 30 + lv * 8; B.pHp = B.pMax;
+  B.atk = 6 + Math.floor(affTotal() / 5) + lv * 2;
+  document.getElementById('m-name').textContent = mon.name;
+  document.getElementById('m-lv').textContent = B.mLv;
+  document.getElementById('m-emoji').textContent = mon.emoji;
+  document.getElementById('p-emoji').textContent = (CHARACTERS[0] && { bunny:'🐰', bear:'🐻', chick:'🐤', image:'🌟' }[CHARACTERS[0].species]) || '🐰';
+  document.getElementById('blog').textContent = '野生的' + mon.name + '出現了！（我方攻擊力 ' + B.atk + '）';
+  document.getElementById('b-ult').disabled = false;
+  updateHp();
+  document.getElementById('battle').style.display = 'flex';
+  arpCloudLog('battle_start', null, { monster: mon.name });
+}
+function updateHp() {
+  const m = document.getElementById('m-hp'), p = document.getElementById('p-hp');
+  m.style.width = Math.max(0, B.mHp / B.mMax * 100) + '%';
+  p.style.width = Math.max(0, B.pHp / B.pMax * 100) + '%';
+  m.className = 'hp' + (B.mHp / B.mMax < 0.35 ? ' low' : '');
+  p.className = 'hp' + (B.pHp / B.pMax < 0.35 ? ' low' : '');
+}
+function hitAnim(id) {
+  const e = document.getElementById(id);
+  e.classList.add('hit'); setTimeout(() => e.classList.remove('hit'), 180);
+}
+function playerTurn(mult) {
+  if (!B) return;
+  const dmg = Math.round(B.atk * mult * (0.8 + Math.random() * 0.5));
+  B.mHp -= dmg; hitAnim('m-emoji'); arpSfx('pop'); arpVibrate(50);
+  document.getElementById('blog').textContent = '我方造成 ' + dmg + ' 傷害！';
+  updateHp();
+  if (B.mHp <= 0) return winBattle();
+  setTimeout(monsterTurn, 700);
+}
+function monsterTurn() {
+  if (!B) return;
+  const dmg = 3 + Math.floor(Math.random() * (4 + B.mLv * 2));
+  B.pHp -= dmg; hitAnim('p-emoji'); arpVibrate(80);
+  document.getElementById('blog').textContent = B.mon.name + '反擊，造成 ' + dmg + ' 傷害！';
+  updateHp();
+  if (B.pHp <= 0) loseBattle();
+}
+function winBattle() {
+  const exp = 40 + B.mLv * 5;
+  document.getElementById('battle').style.display = 'none';
+  arpCloudLog('battle_win', null, { monster: B.mon.name });
+  try { if (window.gtag) gtag('event', 'battle_win', { monster: B.mon.name }); } catch (e) {}
+  finishSpawn(B.spawn, 'battle_win', exp, '⚔️ 打贏了' + B.mon.name + '！+' + exp + ' EXP');
+  B = null;
+}
+function loseBattle() {
+  document.getElementById('battle').style.display = 'none';
+  document.getElementById('s-icon').textContent = '😵';
+  document.getElementById('s-name').textContent = '輸了…但沒關係！';
+  document.getElementById('s-desc').textContent = '回去多摸摸夥伴提升好感度，攻擊力會變強，再來挑戰！';
+  document.getElementById('s-go').textContent = '知道了';
+  document.getElementById('sheet').style.display = 'block';
+  activeSpawn = { id: '__done__' };
+  B = null;
+}
+document.getElementById('b-atk').addEventListener('click', () => playerTurn(1));
+document.getElementById('b-ult').addEventListener('click', e => {
+  if (B && !B.ultUsed) { B.ultUsed = true; e.target.disabled = true; playerTurn(2.2); }
+});
+document.getElementById('b-run').addEventListener('click', () => {
+  document.getElementById('battle').style.display = 'none'; B = null;
+});
+
+/* ---- 初始化：GPS 或模擬模式 ---- */
+function setPlayer(latlng, first) {
+  playerPos = latlng;
+  if (!playerMarker) {
+    playerMarker = L.marker(latlng, { icon: L.divIcon({ className: 'player-pin', html: '🚶', iconSize: [34, 34] }), zIndexOffset: 1000 }).addTo(map);
+  } else playerMarker.setLatLng(latlng);
+  if (first) {
+    map.setView(latlng, 17);
+    const brandSpawns = (window.ARP_BRAND && ARP_BRAND.config && ARP_BRAND.config.spawns) || null;
+    spawns = buildSpawns(latlng, brandSpawns);
+    renderSpawns();
+  }
+  checkNearby();
+}
+(async function init() {
+  document.getElementById('lnk-back').href = arpLink('index.html');
+  await arpLoadConfig();
+  expLine();
+  map = L.map('map', { zoomControl: false });
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19, attribution: '© OpenStreetMap'
+  }).addTo(map);
+  map.setView([25.0478, 121.5170], 15);
+
+  let got = false;
+  if (navigator.geolocation && new URLSearchParams(location.search).get('sim') !== '1') {
+    navigator.geolocation.watchPosition(p => {
+      const first = !got; got = true;
+      setPlayer({ lat: p.coords.latitude, lng: p.coords.longitude }, first);
+    }, () => { if (!got) enableSim(); }, { enableHighAccuracy: true, maximumAge: 3000, timeout: 8000 });
+    setTimeout(() => { if (!got) enableSim(); }, 9000);
+  } else enableSim();
+
+  function enableSim() {
+    if (got) return; got = true; simMode = true;
+    document.getElementById('simhint').style.display = 'block';
+    setPlayer({ lat: 25.0478, lng: 121.5170 }, true); // 台北車站
+    map.on('click', e => setPlayer({ lat: e.latlng.lat, lng: e.latlng.lng }, false));
+  }
+  resetGoBtn();
+})();
+</script>
+</body>
+</html>

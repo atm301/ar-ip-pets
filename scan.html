@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>掃發票／序號 — AR IP 夥伴</title>
+<meta name="robots" content="noindex">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧾</text></svg>">
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-RDJD1YVHR7"></script>
+<script>
+window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}
+gtag('js',new Date());gtag('config','G-RDJD1YVHR7');
+</script>
+<script src="libs/jsQR.js"></script>
+<style>
+:root { --brand-primary:#FF7FA5; --brand-dark:#4A3B47; --brand-bg:#FFF7FA; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Microsoft JhengHei','PingFang TC',sans-serif; background:#000; overflow:hidden; }
+video { position:fixed; inset:0; width:100vw; height:100vh; object-fit:cover; }
+#topbar { position:fixed; z-index:20; top:0; left:0; right:0; display:flex; justify-content:space-between;
+  align-items:center; padding:10px 14px; padding-top:calc(10px + env(safe-area-inset-top));
+  background:linear-gradient(rgba(0,0,0,.5),transparent); color:#fff; }
+#topbar h1 { font-size:16px; }
+.pill { border:none; border-radius:999px; padding:8px 14px; font-size:14px; font-weight:700;
+  background:#fff; color:var(--brand-dark); cursor:pointer; min-height:44px; text-decoration:none; display:inline-block; }
+#frame { position:fixed; z-index:15; top:50%; left:50%; width:min(70vw,300px); height:min(70vw,300px);
+  transform:translate(-50%,-55%); border:3px dashed rgba(255,255,255,.8); border-radius:16px; pointer-events:none; }
+#tip { position:fixed; z-index:20; bottom:24px; left:50%; transform:translateX(-50%); width:calc(100% - 28px);
+  max-width:480px; background:rgba(0,0,0,.6); color:#fff; font-size:14px; text-align:center;
+  border-radius:12px; padding:12px 16px; line-height:1.7; }
+#result { display:none; position:fixed; inset:0; z-index:40; background:rgba(0,0,0,.7);
+  align-items:center; justify-content:center; padding:20px; }
+#result .card { background:var(--brand-bg); border-radius:20px; width:100%; max-width:440px; padding:22px; text-align:center; }
+#result h2 { color:var(--brand-dark); font-size:20px; margin-bottom:10px; }
+#result p { color:#6d5a66; font-size:14px; line-height:1.8; }
+#result .big { font-size:44px; margin:8px 0; }
+#result button, #result a { margin-top:14px; width:100%; }
+.pill.primary { background:var(--brand-primary); color:#fff; }
+</style>
+</head>
+<body>
+<video id="video" autoplay playsinline muted></video>
+<div id="topbar"><h1>🧾 掃發票／序號領裝備</h1><a class="pill" id="lnk-back" href="index.html">← 回夥伴</a></div>
+<div id="frame"></div>
+<div id="tip">把<b>電子發票左側 QR</b> 或活動序號 QR 放進框框<br>掃到消費發票 → 完成每日任務＋領配件</div>
+<div id="result"><div class="card">
+  <div class="big" id="r-icon">🎁</div>
+  <h2 id="r-title"></h2>
+  <p id="r-body"></p>
+  <button class="pill primary" id="r-again">再掃一張</button>
+  <a class="pill" id="r-home" href="index.html">回夥伴那裡</a>
+</div></div>
+
+<script src="cloud.js"></script>
+<script src="characters.js"></script>
+<script src="quests.js"></script>
+<script>
+const video = document.getElementById('video');
+const cv = document.createElement('canvas');
+const cx = cv.getContext('2d', { willReadFrequently: true });
+let scanning = false;
+
+document.getElementById('lnk-back').href = arpLink('index.html');
+document.getElementById('r-home').href = arpLink('index.html');
+
+function showResult(icon, title, body) {
+  document.getElementById('r-icon').textContent = icon;
+  document.getElementById('r-title').textContent = title;
+  document.getElementById('r-body').innerHTML = body;
+  document.getElementById('result').style.display = 'flex';
+}
+document.getElementById('r-again').addEventListener('click', () => {
+  document.getElementById('result').style.display = 'none';
+  scanning = true; tick();
+});
+
+/* 台灣電子發票左 QR 明文格式：
+   [0-10) 發票字軌+號碼 AB12345678、[10-17) 民國日期 yyyMMdd、[17-21) 隨機碼、
+   [21-29) 銷售額 hex、[29-37) 總額 hex、之後是統編與加密區 */
+function parseInvoice(text) {
+  const m = text.match(/^([A-Z]{2}\d{8})(\d{7})(\d{4})([0-9a-fA-F]{8})([0-9a-fA-F]{8})/);
+  if (!m) return null;
+  const roc = m[2];
+  return {
+    no: m[1],
+    date: (parseInt(roc.slice(0, 3), 10) + 1911) + '/' + roc.slice(3, 5) + '/' + roc.slice(5, 7),
+    total: parseInt(m[5], 16)
+  };
+}
+function usedInvoices() {
+  try { return JSON.parse(localStorage.getItem('arp_invoices')) || []; } catch (e) { return []; }
+}
+
+async function handleCode(text) {
+  scanning = false;
+  // ① 發票右側 QR（** 開頭）→ 提示掃左邊
+  if (text.startsWith('**')) {
+    showResult('↩️', '掃到發票「右側」QR 了', '請改掃<b>左側</b>那個 QR（有發票號碼的那張）');
+    return;
+  }
+  // ② 台灣電子發票
+  const inv = parseInvoice(text);
+  if (inv) {
+    const used = usedInvoices();
+    if (used.includes(inv.no)) {
+      showResult('ℹ️', '這張發票已經領過了', '發票 ' + inv.no + ' 已兌換，換一張吧！');
+      return;
+    }
+    used.push(inv.no);
+    localStorage.setItem('arp_invoices', JSON.stringify(used));
+    questBump('invoice');
+    const r = arpAddExp(30);
+    arpCloudLog('invoice_scan', null, { amount: inv.total });
+    try { if (window.gtag) gtag('event', 'invoice_scan', { amount: inv.total }); } catch (e) {}
+    showResult('🧾', '消費認證成功！+30 EXP', '發票 ' + inv.no + '（' + inv.date + '，NT$' + inv.total + '）<br>' +
+      '每日任務「掃 1 張消費發票」完成，回夥伴那裡按 📅 領獎勵！' +
+      (r.levelUp ? '<br>🎉 玩家升級到 Lv.' + r.level + '！' : ''));
+    return;
+  }
+  // ③ 活動序號（網址 ?gift=CODE 或純序號）
+  await arpLoadConfig();
+  let code = text.trim();
+  const gm = text.match(/[?&]gift=([A-Za-z0-9]+)/);
+  if (gm) code = gm[1];
+  const acc = ACCESSORIES.find(a => a.code && a.code.toUpperCase() === code.toUpperCase());
+  if (acc) {
+    const isNew = arpUnlockItem(acc.id);
+    arpCloudLog('gift_redeem', null, { item: acc.id, via: 'scan' });
+    showResult('🎁', isNew ? '獲得新配件：' + acc.name + '！' : '配件已擁有：' + acc.name,
+      isNew ? '回夥伴那裡看看牠的新造型！' : '這個序號之前兌換過了。');
+    return;
+  }
+  showResult('❓', '看不懂這個 QR', '內容：' + text.slice(0, 60) + '…<br>支援：台灣電子發票（左側 QR）、活動序號 QR');
+}
+
+function tick() {
+  if (!scanning) return;
+  if (video.readyState === video.HAVE_ENOUGH_DATA) {
+    cv.width = video.videoWidth; cv.height = video.videoHeight;
+    cx.drawImage(video, 0, 0);
+    const img = cx.getImageData(0, 0, cv.width, cv.height);
+    const q = jsQR(img.data, img.width, img.height, { inversionAttempts: 'dontInvert' });
+    if (q && q.data) { handleCode(q.data); return; }
+  }
+  requestAnimationFrame(tick);
+}
+
+navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
+  .then(stream => { video.srcObject = stream; scanning = true; tick(); })
+  .catch(() => {
+    document.getElementById('tip').innerHTML = '⚠️ 無法啟動相機（需 https + 相機權限）。<br>也可以直接開含序號的網址：/?gift=HAT2026';
+  });
+</script>
+</body>
+</html>

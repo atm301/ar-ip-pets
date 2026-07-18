@@ -10,17 +10,29 @@
 - [A-Frame](https://aframe.io/) — 3D 場景與角色（目前用基本幾何組裝的可愛角色，正式版換 GLB 模型）
 - 純靜態網站，無後端；進度存 localStorage（正式版建議接 Supabase）
 
+## 平台架構（v0.3 起為多品牌 SaaS）
+
+- **多租戶**：品牌商在 `/admin.html` 註冊登入（Supabase Auth）→ 建品牌 → 上傳產品圖編譯 → 設定角色/據點 → 發佈
+- **顧客網址**：`https://ar-ip-pets.zeabur.app/?b=品牌代號`（各品牌獨立設定與辨識檔）
+- **資料**：Supabase `arp_brands`（config JSONB + RLS）、`arp_events`（匿名事件，品牌主只能看自己的）、Storage `arp-assets`（.mind 檔）
+- **遊戲循環**：掃產品養成（好感度）→ 每日任務（EXP/玩家等級）→ 掃發票/序號領配件（紙娃娃）→ 地圖探索（geofencing 遭遇戰/夥伴任務/寶箱）
+
 ## 檔案結構
 
 ```
-index.html       AR 掃描主頁（辨識 + 互動 + 語音 + 圖鑑 + 配件 + 隱藏劇情）
+index.html       AR 掃描主頁（辨識 + 互動 + 語音 + 圖鑑 + 配件 + 任務 + 隱藏劇情）
+map.html         地圖探索（Leaflet + GPS geofencing、遭遇戰/夥伴任務/寶箱；?sim=1 模擬模式）
+scan.html        掃碼頁（台灣電子發票 QR 解析 + 活動序號兌換）
 targets.html     示範圖切換頁（此裝置顯示圖、另一台手機掃）
 demo.html        免鏡頭展示模式（提案 demo / 桌機測試用）
-admin.html       品牌後台（上傳產品圖→品質評分→編譯辨識檔→綁角色→2D 圖可動化→數據）
-characters.json  角色/台詞/配件設定檔（非工程師改這份即可）
-characters.js    共用邏輯（3D 組裝、音效、TTS、存檔、統計）
-libs/          self-host 的 A-Frame 與 MindAR（不吃 CDN）
-targets/         targets.mind 辨識檔（3 張示範圖已編譯）
+admin.html       品牌後台（登入、上傳/評分/編譯、角色、據點、雲端發佈、數據）
+characters.json  預設示範品牌設定（雲端品牌存 Supabase）
+characters.js    共用邏輯（設定載入、3D 組裝、音效、TTS、存檔）
+cloud.js         Supabase 前台層（品牌載入、事件上報）
+quests.js        每日任務 + EXP/玩家等級
+supabase/        migration SQL
+libs/            self-host：A-Frame、MindAR、supabase-js、Leaflet、jsQR
+targets/         示範 targets.mind
 assets/          demo-1/2/3 示範圖、OG 圖
 ```
 
