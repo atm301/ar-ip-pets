@@ -265,7 +265,8 @@ function _speakTTS(ch, text) {
 function arpSpeak(ch, text) {
   if (!arpSoundOn() || !text) return;
   try {
-    const url = ch && VOICE_MAP && VOICE_MAP[ch.id] && VOICE_MAP[ch.id][text];
+    const vid = ch && (ch.baseId || ch.id);
+    const url = vid && VOICE_MAP && VOICE_MAP[vid] && VOICE_MAP[vid][text];
     if (url) {
       arpSpeakStop();
       _voiceAudio = new Audio(url);
@@ -496,6 +497,12 @@ function charJump(chId) { charReact(chId, 'tap'); }
 
 function pickLine(arr) { return arr && arr.length ? arr[Math.floor(Math.random() * arr.length)] : ''; }
 function charById(id) { return CHARACTERS.find(c => c.id === id); }
+/* 分身角色（同角色多掃描目標，baseId 指向本尊）：狀態/語音/劇情都歸本尊 */
+function arpSid(chOrId) {
+  const ch = typeof chOrId === 'string' ? charById(chOrId) : chOrId;
+  return (ch && (ch.baseId || ch.id)) || chOrId;
+}
 function duoScriptFor(idA, idB) {
-  return DUO_SCRIPTS.find(s => s.pair.includes(idA) && s.pair.includes(idB) && idA !== idB);
+  const a = arpSid(idA), b = arpSid(idB);
+  return DUO_SCRIPTS.find(s => s.pair.includes(a) && s.pair.includes(b) && a !== b);
 }

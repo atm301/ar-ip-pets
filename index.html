@@ -238,9 +238,9 @@ function onFound(ch) {
   if (!activeIds.includes(ch.id)) activeIds.push(ch.id);
   setScanning(false);
   actions.style.display = 'flex';
-  arpBumpScan(ch.id);
+  arpBumpScan(arpSid(ch));
   questBump('scan'); updateQuestBadge();
-  arpCloudLog('scan', ch.id);
+  arpCloudLog('scan', arpSid(ch));
   arpSfx('found'); arpVibrate([30, 40, 60]);
   const rootEl = document.getElementById('char-' + ch.id);
   if (rootEl) {
@@ -257,11 +257,11 @@ function onFound(ch) {
       charReact(ch.id, 'greet');
     }
   }, 750);
-  const isNew = arpDiscover(ch.id);
+  const isNew = arpDiscover(arpSid(ch));
   if (isNew) {
     showToast('🎉 收集到新夥伴：' + ch.name + '！');
-    arpTrack('character_discovered', { character: ch.id });
-    arpCloudLog('character_discovered', ch.id);
+    arpTrack('character_discovered', { character: arpSid(ch) });
+    arpCloudLog('character_discovered', arpSid(ch));
     const n = arpCollectedCount();
     if (n === 2) {
       arpTrack('collect_second', { character: ch.id }); /* 3-2 回購代理指標 */
@@ -299,7 +299,7 @@ function currentChar() {
 }
 function talk(ch) {
   ch = ch || currentChar(); if (!ch) return;
-  const aff = arpAffection(ch.id, 1);
+  const aff = arpAffection(arpSid(ch), 1);
   charReact(ch.id, 'tap');
   arpSfx('pop'); arpVibrate(40);
   showBubble(ch.name, pickLine(ch.taps), '💗 好感度 ' + aff + '（Lv.' + arpLevel(aff) + '）', '', ch);
@@ -314,10 +314,10 @@ function talk(ch) {
 }
 function feed(ch) {
   ch = ch || currentChar(); if (!ch) return;
-  arpFeed(ch.id);
+  arpFeed(arpSid(ch));
   charReact(ch.id, 'feed');
   arpSfx('yum'); arpVibrate([30, 30, 30]);
-  const s = arpLoad().collected[ch.id];
+  const s = arpLoad().collected[arpSid(ch)];
   showBubble(ch.name, pickLine(ch.feeds), '🍡 已餵食 ' + s.fed + ' 次｜💗 好感度 ' + s.affection, '', ch);
   arpTrack('character_feed', { character: ch.id });
   questBump('feed'); updateQuestBadge();
@@ -423,15 +423,16 @@ btnSound.addEventListener('click', () => {
 
 /* 圖鑑 */
 function updateBookBadge() {
+  const visible = CHARACTERS.filter(c => !c.hideInBook).length;
   document.getElementById('book-count').textContent =
-    arpCollectedCount() + '/' + CHARACTERS.length;
+    arpCollectedCount() + '/' + visible;
 }
 const SPECIES_EMOJI = { bunny:'🐰', bear:'🐻', chick:'🐤', image:'🌟' };
 function renderBook() {
   const s = arpLoad();
   const list = document.getElementById('book-list');
   list.innerHTML = '';
-  CHARACTERS.forEach(ch => {
+  CHARACTERS.filter(c => !c.hideInBook).forEach(ch => {
     const owned = s.collected[ch.id];
     const row = document.createElement('div');
     row.className = 'charrow' + (owned ? '' : ' locked');
