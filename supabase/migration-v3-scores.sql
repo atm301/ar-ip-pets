@@ -33,3 +33,6 @@ CREATE TRIGGER arp_scores_touch BEFORE INSERT OR UPDATE ON public.arp_scores
   FOR EACH ROW EXECUTE FUNCTION public.arp_scores_touch();
 
 COMMIT;
+
+-- v4（2026-07-20）：排行榜加完美餵食數
+ALTER TABLE arp_scores ADD COLUMN IF NOT EXISTS perfect int NOT NULL DEFAULT 0;

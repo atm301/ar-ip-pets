@@ -35,11 +35,11 @@ function allow(ip) {
   return null;
 }
 
-/* ---- 品牌設定快取（10 分鐘）：demo 讀站上 characters.json，其他讀 Supabase ---- */
+/* ---- 品牌設定快取（3 分鐘，讓後台開關快點生效）：demo 讀站上 characters.json，其他讀 Supabase ---- */
 const cfgCache = new Map();
 async function getConfig(slug) {
   const hit = cfgCache.get(slug);
-  if (hit && Date.now() - hit.ts < 600e3) return hit.cfg;
+  if (hit && Date.now() - hit.ts < 180e3) return hit.cfg;
   let cfg = null;
   if (slug === 'demo') {
     const r = await fetch(SITE + '/characters.json');
@@ -120,6 +120,7 @@ const server = http.createServer(async (req, res) => {
     if (limited) return send(200, { reply: limited });
     const cfg = await getConfig(String(brand || 'demo').toLowerCase().replace(/[^a-z0-9-]/g, '') || 'demo');
     if (!cfg) return send(404, { error: 'brand not found' });
+    if (cfg.chatEnabled !== true) return send(403, { error: 'chat disabled' }); // 預設關閉，後台勾選才開
     const ch = (cfg.characters || []).find(c => c.id === charId) || (cfg.characters || [])[0];
     if (!ch) return send(404, { error: 'char not found' });
     const reply = await askGemini(systemPrompt(ch, cfg.brand || {}), Array.isArray(history) ? history : [], msg);

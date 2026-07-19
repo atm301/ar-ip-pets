@@ -76,6 +76,10 @@ th, td { text-align:left; padding:8px 10px; border-bottom:1px solid #f5dfe8; }
   <input type="text" id="brand-name" placeholder="例如：小圭選物">
   <label>品牌故事（角色會用這些內容跟顧客聊天）</label>
   <textarea id="brand-story" placeholder="說說你的品牌是怎麼開始的、想帶給顧客什麼…"></textarea>
+  <label style="display:flex;align-items:center;gap:8px;margin-top:10px;cursor:pointer;">
+    <input type="checkbox" id="chat-enabled" style="width:18px;height:18px;">
+    🗨️ 啟用 AI 聊天（顧客可以跟角色自由對話；<b>預設關閉</b>，開啟後會產生 AI 用量）
+  </label>
 
   <h2>產品圖上傳與辨識品質檢測</h2>
   <p class="help">每個產品一張<b>正面、光線均勻、無反光</b>的照片。上傳後系統會先評分（特徵點越多辨識越穩），
@@ -178,6 +182,8 @@ th, td { text-align:left; padding:8px 10px; border-bottom:1px solid #f5dfe8; }
     <canvas id="ch-chars" width="880" height="160" style="width:100%;background:#fffafc;border-radius:10px;"></canvas>
     <h2>互動漏斗（掃描 → 互動 → 點擊產品連結）</h2>
     <canvas id="ch-funnel" width="880" height="140" style="width:100%;background:#fffafc;border-radius:10px;"></canvas>
+    <div id="scan-health"></div>
+    <div id="chat-topics"></div>
     <h2>🏆 排行榜前 10</h2>
     <div id="rank-admin"></div>
   </div>
@@ -360,6 +366,7 @@ async function loadChars() {
   const cfg = await arpLoadConfig();
   chars = JSON.parse(JSON.stringify(CHARACTERS));
   if (cfg.brand) { brand = cfg.brand; $('brand-name').value = brand.name || ''; $('brand-story').value = brand.story || ''; }
+  $('chat-enabled').checked = cfg.chatEnabled === true;
   renderChars();
 }
 function renderChars() {
@@ -430,7 +437,39 @@ $('btn-add-ch').addEventListener('click', () => {
 function exportConfig() {
   brand = { name: $('brand-name').value.trim(), story: $('brand-story').value.trim() };
   return { _v: 1, brand, characters: chars, duoScripts: DUO_SCRIPTS, accessories: ACCESSORIES,
-    spawns: spawns, quests: brandQuests };
+    spawns: spawns, quests: brandQuests,
+    chatEnabled: $('chat-enabled').checked }; // AI 聊天預設關閉，勾了才開
+}
+/* 發佈前設定驗證：硬錯誤（會壞掉）擋下、警告（可能怪怪的）提醒 */
+function validateConfig(cfg) {
+  const errors = [], warns = [];
+  const cs = cfg.characters || [];
+  if (!cs.length) errors.push('至少要有 1 隻角色');
+  const ids = {}, tis = {};
+  cs.forEach(c => {
+    if (!c.id) errors.push('有角色缺 id');
+    else if (ids[c.id]) errors.push('角色 id 重複：' + c.id);
+    else ids[c.id] = 1;
+    if (tis[c.targetIndex] !== undefined) errors.push('targetIndex 重複：' + c.targetIndex + '（' + c.id + '）');
+    else tis[c.targetIndex] = 1;
+    if (c.baseId && !cs.some(x => x.id === c.baseId)) errors.push(c.id + ' 的 baseId「' + c.baseId + '」不存在');
+    if (c.species === 'image' && !c.imageSrc) warns.push(c.id + ' 是 2D 角色但沒上傳角色圖');
+    if (!(c.greet || []).length) warns.push(c.id + ' 沒有打招呼台詞');
+  });
+  for (let i = 0; i < cs.length; i++) {
+    if (tis[i] === undefined) { warns.push('targetIndex 不連續（缺 ' + i + '）——確認辨識檔的張數與順序'); break; }
+  }
+  (cfg.duoScripts || []).forEach(s => (s.pair || []).forEach(p => {
+    if (!cs.some(x => x.id === p)) warns.push('隱藏劇情引用了不存在的角色：' + p);
+  }));
+  (cfg.quests || []).forEach(q => {
+    if (!['talk', 'feed', 'scan', 'invoice', 'encounter', 'photo', 'share', 'duo'].includes(q.ev))
+      warns.push('任務「' + q.name + '」的觸發事件 ' + q.ev + ' 不在支援清單');
+  });
+  (cfg.festivals || []).forEach(f => {
+    if (!/^\d{2}-\d{2}$/.test(f.date || '')) warns.push('紀念日日期格式要 MM-DD：' + (f.date || '(空)'));
+  });
+  return { errors, warns };
 }
 
 /* ---------- 每日任務編輯器（常見任務庫 QUEST_PRESETS 在 quests.js） ---------- */
@@ -598,6 +637,7 @@ $('brand-select').addEventListener('change', async e => {
   if (cfg.characters && cfg.characters.length) { chars = cfg.characters; renderChars(); }
   if (cfg.brand) { $('brand-name').value = cfg.brand.name || ''; $('brand-story').value = cfg.brand.story || ''; }
   spawns = cfg.spawns || []; renderSpawnList();
+  $('chat-enabled').checked = cfg.chatEnabled === true;
   if (cfg.quests && cfg.quests.length) { brandQuests = cfg.quests.map(q => Object.assign({}, q)); renderQuestAdmin(); }
   const url = location.origin + '/?b=' + activeBrand.slug;
   $('front-url').innerHTML = '<a href="' + url + '" target="_blank">' + url + '</a>';
@@ -607,12 +647,16 @@ $('brand-select').addEventListener('change', async e => {
 $('btn-cloud-save').addEventListener('click', async () => {
   if (!activeBrand) return;
   const cfg = exportConfig();
+  /* 8-1 發佈前驗證：硬錯誤直接擋，警告列出但放行 */
+  const v = validateConfig(cfg);
+  if (v.errors.length) return toast('❌ 設定有問題，未儲存：' + v.errors.join('；'));
+  if (v.warns.length) toast('⚠️ 提醒：' + v.warns.slice(0, 3).join('；'));
   const { error } = await sb.from('arp_brands')
     .update({ config: cfg, name: cfg.brand.name || activeBrand.slug })
     .eq('id', activeBrand.id);
   if (error) return toast('❌ 儲存失敗：' + error.message);
   activeBrand.config = cfg;
-  toast('✅ 已儲存到雲端');
+  if (!v.warns.length) toast('✅ 已儲存到雲端（設定檢查通過）');
 });
 $('btn-upload-mind').addEventListener('click', async () => {
   if (!activeBrand || !state.mindBuffer) return;
@@ -674,7 +718,7 @@ renderStats = async function () {
   _renderStatsLocal();
   if (!activeBrand || !me) return;
   const { data, error } = await sb.from('arp_events')
-    .select('event, character_id, created_at').eq('brand_slug', activeBrand.slug)
+    .select('event, character_id, created_at, meta').eq('brand_slug', activeBrand.slug)
     .order('created_at', { ascending: false }).limit(5000);
   if (error || !data) return;
   const agg = {};
@@ -702,12 +746,30 @@ renderStats = async function () {
   drawBars($('ch-chars'), names.length ? names : ['（無資料）'], Object.values(byChar).length ? Object.values(byChar) : [0], true);
   drawBars($('ch-funnel'), ['掃描', '互動(摸/餵)', '點產品連結'],
     [agg.scan || 0, (agg.character_tap || 0) + (agg.character_feed || 0), agg.outbound_click || 0], true);
-  /* 排行榜 */
-  const { data: rows } = await sb.from('arp_scores').select('nick, exp')
+  /* 3-2 辨識健康度：手動召喚佔比高＝顧客掃不到，辨識檔該檢查了 */
+  const manual = agg.manual_summon || 0, scans = agg.scan || 0;
+  const mRate = manual + scans ? Math.round(manual / (manual + scans) * 100) : 0;
+  $('scan-health').innerHTML = '<h2>📡 辨識健康度</h2><div class="imgcard"><div class="inf">' +
+    '掃描成功 <b>' + scans + '</b> 次｜手動召喚 <b>' + manual + '</b> 次（佔 <b>' + mRate + '%</b>）' +
+    (mRate > 30 && manual >= 5
+      ? '<br><b style="color:#E03131;">⚠️ 超過 3 成顧客掃不到改用手動召喚——建議到 ① 重新上傳更清晰的產品圖（用「建議裁切」）</b>'
+      : '<br><small>手動召喚佔比低代表辨識檔健康；超過 30% 會在這裡警示</small>') +
+    '</div></div>';
+  /* 3-1 熱門聊天問題：顧客最想知道什麼，直接變 FAQ/文案素材 */
+  const qs = data.filter(r => r.event === 'chat_msg' && r.meta && r.meta.q).map(r => r.meta.q);
+  $('chat-topics').innerHTML = qs.length
+    ? '<h2>🗨️ 顧客最近問角色的問題（近 ' + Math.min(qs.length, 20) + ' 則）</h2>' +
+      '<div class="imgcard"><div class="inf">' +
+      qs.slice(0, 20).map(q => '・' + String(q).replace(/</g, '&lt;')).join('<br>') +
+      '<br><small>這些就是顧客真正想知道的事——適合做成 FAQ、貼文或包裝文案</small></div></div>'
+    : '';
+  /* 排行榜（含完美餵食數） */
+  const { data: rows } = await sb.from('arp_scores').select('nick, exp, perfect')
     .eq('brand_slug', activeBrand.slug).order('exp', { ascending: false }).limit(10);
   $('rank-admin').innerHTML = (rows && rows.length)
     ? rows.map((x, i) => '<div class="imgcard"><div class="inf">' + (i + 1) + '. <b>' +
-        String(x.nick || '').replace(/</g, '&lt;') + '</b>　' + x.exp + ' EXP</div></div>').join('')
+        String(x.nick || '').replace(/</g, '&lt;') + '</b>　' + x.exp + ' EXP' +
+        (x.perfect ? '　<small>🎯 完美餵食 ' + x.perfect + '</small>' : '') + '</div></div>').join('')
     : '<p class="help">還沒有玩家上榜</p>';
 };
 

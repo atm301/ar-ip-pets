@@ -67,6 +67,12 @@ body { font-family:'Microsoft JhengHei','PingFang TC',sans-serif; overflow:hidde
 .chatmsg { max-width:82%; border-radius:14px; padding:9px 13px; font-size:14px; line-height:1.5; }
 .chatmsg.me { align-self:flex-end; background:var(--brand-primary); color:#fff; }
 .chatmsg.ai { align-self:flex-start; background:#fff; color:var(--brand-dark); box-shadow:0 1px 4px rgba(0,0,0,.08); }
+.chip { border:1px solid #ecd8e0; background:#fff; color:var(--brand-dark); border-radius:999px;
+  padding:7px 12px; font-size:13px; cursor:pointer; min-height:36px; }
+#a2hsbar { display:none; position:fixed; z-index:35; left:12px; right:12px;
+  bottom:calc(88px + env(safe-area-inset-bottom)); background:#fff; border-radius:14px;
+  padding:12px 14px; box-shadow:0 4px 16px rgba(0,0,0,.3); font-size:13px; color:var(--brand-dark); }
+@keyframes fingerTap { 0%,100% { transform:translateY(0); } 50% { transform:translateY(10px); } }
 #hint { display:none; background:rgba(0,0,0,.55); color:#fff; font-size:14px;
   border-radius:12px; padding:10px 16px; text-align:center; line-height:1.6; }
 #hint a { color:#fff; }
@@ -152,7 +158,18 @@ body { font-family:'Microsoft JhengHei','PingFang TC',sans-serif; overflow:hidde
     <div style="position:absolute;left:44%;width:12%;top:0;bottom:0;background:var(--brand-primary);border-radius:6px;"></div>
     <div id="fg-cursor" style="position:absolute;left:0;top:-3px;width:8px;height:32px;background:#fff;border-radius:4px;box-shadow:0 0 8px #fff;"></div>
   </div>
+  <div id="fg-tut" style="display:none;color:#fff;font-size:14px;text-align:center;text-shadow:0 2px 6px rgba(0,0,0,.6);">
+    白色光標跑進<b style="color:var(--brand-primary);">粉紅區</b>的瞬間按下去！<br>
+    <span style="display:inline-block;font-size:30px;animation:fingerTap .7s ease-in-out infinite;">👆</span>
+  </div>
   <button class="pill primary" id="fg-tap" style="min-width:170px;font-size:17px;">餵！</button>
+  <div style="color:#ffffffbb;font-size:12px;">也可以按空白鍵</div>
+</div>
+
+<!-- iOS 加入主畫面提示 -->
+<div id="a2hsbar">
+  📲 <b>把夥伴帶回家！</b>用 Safari 底部的「分享 <span style="font-size:15px;">⎋</span>」→「加入主畫面」，下次一點就開。
+  <button class="pill" id="a2hs-close" style="min-height:34px;padding:5px 12px;font-size:12px;float:right;margin-top:-4px;">知道了</button>
 </div>
 
 <div id="toast" role="status" aria-live="polite"></div>
@@ -236,16 +253,19 @@ body { font-family:'Microsoft JhengHei','PingFang TC',sans-serif; overflow:hidde
   </div>
 </div>
 
-<!-- 角色聊天（AI） -->
-<div class="modal" id="modal-chat">
+<!-- 角色聊天（AI；品牌後台開啟才會出現） -->
+<div class="modal" id="modal-chat" role="dialog" aria-modal="true" aria-labelledby="chat-title">
   <div class="card" style="display:flex;flex-direction:column;max-height:76vh;">
     <h2 id="chat-title">🗨️ 聊天</h2>
-    <div id="chat-log" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;min-height:140px;padding:4px 0;"></div>
-    <div style="display:flex;gap:8px;margin-top:10px;">
-      <input id="chat-input" maxlength="100" placeholder="跟牠說點什麼…" autocomplete="off"
+    <div id="chat-log" role="log" aria-live="polite" aria-label="對話內容"
+      style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;min-height:140px;padding:4px 0;"></div>
+    <div id="chat-chips" style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;"></div>
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <input id="chat-input" maxlength="100" placeholder="跟牠說點什麼…" autocomplete="off" aria-label="輸入訊息"
         style="flex:1;border:1px solid #ecd8e0;border-radius:10px;padding:9px 12px;font-size:14px;font-family:inherit;">
       <button class="pill primary" id="chat-send" style="min-height:40px;">送出</button>
     </div>
+    <button class="pill closebtn" id="btn-quote-share" style="display:none;">📤 分享金句卡</button>
     <button class="pill closebtn" data-close>關閉</button>
   </div>
 </div>
@@ -490,11 +510,20 @@ function checkEvo(ch) {
     arpCloudLog('evolution', arpSid(ch), { lv: lv });
   }
 }
+/* 完美餵食統計（排行榜用）＋連擊 */
+function feedStats() {
+  try { return JSON.parse(localStorage.getItem('arp_feedstats')) || { perfect: 0, total: 0 }; }
+  catch (e) { return { perfect: 0, total: 0 }; }
+}
+let fgCombo = 0;
 /* 餵食（perfect=時機小遊戲按中紅心：好感加倍 + 慶祝動作） */
 function doFeed(ch, perfect, prefix) {
   if (!ch) return;
   arpFeed(arpSid(ch));
   if (perfect) arpAffection(arpSid(ch), 2);
+  const fs = feedStats();
+  fs.total++; if (perfect) fs.perfect++;
+  localStorage.setItem('arp_feedstats', JSON.stringify(fs));
   charReact(ch.id, 'feed');
   if (perfect) setTimeout(() => charReact(ch.id, 'celebrate'), 900);
   arpSfx('yum'); arpVibrate(perfect ? [30, 30, 30, 30, 80] : [30, 30, 30]);
@@ -506,7 +535,7 @@ function doFeed(ch, perfect, prefix) {
   arpCloudLog('character_feed', ch.id);
   checkEvo(ch);
 }
-/* 餵食小遊戲：光標 0.9 秒來回跑，按在紅心區=完美 */
+/* 餵食小遊戲：光標 0.9 秒來回跑，按在紅心區=完美；空白鍵也可以按 */
 let fgRaf = null, fgT0 = 0, fgTimeout = null;
 const fgEl = document.getElementById('feedgame');
 function feedGamePos() {
@@ -516,7 +545,11 @@ function feedGamePos() {
 function feedGameStart() {
   const ch = currentChar(); if (!ch) return;
   if (matchMedia('(prefers-reduced-motion: reduce)').matches) { doFeed(ch, false, ''); return; }
+  /* 首次玩：手指引導動畫 */
+  document.getElementById('fg-tut').style.display =
+    localStorage.getItem('arp_feedtut') ? 'none' : 'block';
   fgEl.style.display = 'flex';
+  document.getElementById('fg-tap').focus();
   fgT0 = performance.now();
   const cur = document.getElementById('fg-cursor');
   (function loop() {
@@ -527,14 +560,32 @@ function feedGameStart() {
   fgTimeout = setTimeout(() => feedGameEnd(null), 6000);
 }
 function feedGameEnd(x) {
+  if (fgEl.style.display !== 'flex') return; // 防空白鍵+按鈕 click 連發兩次
   cancelAnimationFrame(fgRaf); clearTimeout(fgTimeout);
   fgEl.style.display = 'none';
+  localStorage.setItem('arp_feedtut', '1');
   const perfect = x !== null && Math.abs(x - 0.5) <= 0.06;
   const good = x !== null && Math.abs(x - 0.5) <= 0.15;
-  doFeed(currentChar(), perfect, perfect ? '🎯 完美一口' : good ? '👍 差一點就完美' : '');
+  /* 連擊：連續完美有加碼，每滿 3 連擊 +15 EXP */
+  fgCombo = perfect ? fgCombo + 1 : 0;
+  let prefix = perfect ? '🎯 完美一口' : good ? '👍 差一點就完美' : '';
+  if (fgCombo >= 2) prefix = '🎯 完美 x' + fgCombo + ' 連擊';
+  if (perfect && fgCombo > 0 && fgCombo % 3 === 0) {
+    const r = arpAddExp(15);
+    setTimeout(() => showToast('🔥 ' + fgCombo + ' 連擊達成 +15 EXP！' +
+      (r.levelUp ? ' 升到 Lv.' + r.level + '！' : '')), 1200);
+    arpTrack('feed_combo', { combo: fgCombo });
+  }
+  doFeed(currentChar(), perfect, prefix);
   arpTrack('feed_game', { perfect: perfect });
 }
 document.getElementById('fg-tap').addEventListener('click', () => feedGameEnd(feedGamePos()));
+document.addEventListener('keydown', e => {
+  if (fgEl.style.display === 'flex' && (e.code === 'Space' || e.code === 'Enter')) {
+    e.preventDefault();
+    feedGameEnd(feedGamePos());
+  }
+});
 
 /* ---- 每日任務 UI ---- */
 function updateQuestBadge() {
@@ -603,9 +654,9 @@ function specialGreet(ch) {
   return line;
 }
 
-/* ---- 角色聊天（AI）：訊息走 Linode 代理呼叫 Gemini，回覆用語音唸出 ---- */
+/* ---- 角色聊天（AI）：品牌後台開啟才出現（預設關閉）；訊息走 Linode 代理呼叫 Gemini ---- */
 const ARP_CHAT_API = 'https://atmarketing.tw/arp-chat/chat';
-let chatCh = null, chatHist = [], chatBusy = false;
+let chatCh = null, chatHist = [], chatBusy = false, lastAiReply = '';
 function appendChat(role, text) {
   const log = document.getElementById('chat-log');
   const d = document.createElement('div');
@@ -615,18 +666,53 @@ function appendChat(role, text) {
   log.scrollTop = log.scrollHeight;
   return d;
 }
+/* 建議問題快捷鈕（降低開口門檻，點了直接送出） */
+function renderChips(ch) {
+  const box = document.getElementById('chat-chips');
+  box.innerHTML = '';
+  ['你是誰呀？', '「' + (ch.product || '這個產品').slice(0, 14) + '」有什麼特別的？', '再多說一點你的故事嘛']
+    .forEach(q => {
+      const b = document.createElement('button');
+      b.className = 'chip';
+      b.textContent = q;
+      b.addEventListener('click', () => {
+        document.getElementById('chat-input').value = q;
+        sendChat();
+        box.style.display = 'none'; // 開口之後就不擋畫面了
+      });
+      box.appendChild(b);
+    });
+  box.style.display = 'flex';
+}
 document.getElementById('btn-chat').addEventListener('click', () => {
-  const ch = currentChar(); if (!ch) return;
+  const ch = currentChar(); if (!ch || !window.ARP_CHAT_ON) return;
   if (!chatCh || arpSid(chatCh) !== arpSid(ch)) {
     chatHist = [];
+    lastAiReply = '';
     document.getElementById('chat-log').innerHTML = '';
+    document.getElementById('btn-quote-share').style.display = 'none';
   }
   chatCh = ch;
   document.getElementById('chat-title').textContent = '🗨️ 跟' + ch.name + '聊天';
-  if (!chatHist.length) appendChat('ai', pickLine(ch.taps) || '想聊什麼呢？');
+  if (!chatHist.length) { appendChat('ai', pickLine(ch.taps) || '想聊什麼呢？'); renderChips(ch); }
   document.getElementById('modal-chat').style.display = 'flex';
+  document.getElementById('chat-input').focus(); // 7-2 焦點直接進輸入框
   arpTrack('chat_open', { character: arpSid(ch) });
 });
+/* 失敗自動重試一次（行動網路抖一下不該讓角色斷線） */
+async function chatFetch(body) {
+  for (let i = 0; i < 2; i++) {
+    try {
+      const r = await fetch(ARP_CHAT_API, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body
+      });
+      if (r.ok) return await r.json();
+      if (r.status < 500) return await r.json(); // 4xx 不重試
+    } catch (e) {}
+    if (i === 0) await new Promise(res => setTimeout(res, 800));
+  }
+  return null;
+}
 async function sendChat() {
   const inp = document.getElementById('chat-input');
   const msg = inp.value.trim();
@@ -635,29 +721,82 @@ async function sendChat() {
   inp.value = '';
   appendChat('me', msg);
   const typing = appendChat('ai', '（思考中…）');
-  try {
-    const r = await fetch(ARP_CHAT_API, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ brand: arpBrandSlug() || 'demo', charId: arpSid(chatCh),
-        message: msg, history: chatHist.slice(-6) })
-    });
-    const j = await r.json();
-    const reply = (j && j.reply) || '（歪頭）訊號怪怪的，再說一次好嗎？';
-    typing.textContent = reply;
+  const j = await chatFetch(JSON.stringify({ brand: arpBrandSlug() || 'demo',
+    charId: arpSid(chatCh), message: msg, history: chatHist.slice(-6) }));
+  const reply = (j && j.reply) || '（揉眼睛）我剛剛恍神了…再說一次？';
+  typing.textContent = reply;
+  if (j && j.reply) {
     chatHist.push({ role: 'user', text: msg }, { role: 'model', text: reply });
+    lastAiReply = reply;
+    document.getElementById('btn-quote-share').style.display = 'block';
     arpSpeak(chatCh, reply);
     charReact(chatCh.id, 'tap');
     questBump('talk'); updateQuestBadge();
     arpTrack('chat_msg', { character: arpSid(chatCh) });
-    arpCloudLog('chat_msg', arpSid(chatCh));
-  } catch (e) {
-    typing.textContent = '（揉眼睛）我剛剛恍神了…再說一次？';
+    arpCloudLog('chat_msg', arpSid(chatCh), { q: msg.slice(0, 60) }); // 品牌後台看熱門問題
   }
   chatBusy = false;
 }
 document.getElementById('chat-send').addEventListener('click', sendChat);
 document.getElementById('chat-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') sendChat();
+});
+/* Esc 關聊天；關閉後焦點還給聊天鈕（螢幕閱讀器不迷路） */
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && document.getElementById('modal-chat').style.display === 'flex') {
+    document.getElementById('modal-chat').style.display = 'none';
+    document.getElementById('btn-chat').focus();
+  }
+});
+/* 📤 金句語錄卡：把角色最後一句話做成分享圖（重用合照分享視窗） */
+document.getElementById('btn-quote-share').addEventListener('click', async () => {
+  if (!lastAiReply || !chatCh) return;
+  const W = 1080, H = 1080;
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const x = cv.getContext('2d');
+  const col = (chatCh.colors && chatCh.colors.body) || '#FF7FA5';
+  const g = x.createLinearGradient(0, 0, 0, H);
+  g.addColorStop(0, col + '33'); g.addColorStop(1, '#FFF7FA');
+  x.fillStyle = '#FFF7FA'; x.fillRect(0, 0, W, H);
+  x.fillStyle = g; x.fillRect(0, 0, W, H);
+  /* 角色圖（有 2D 圖就畫，跨網域失敗就用大表情） */
+  let drew = false;
+  if (chatCh.imageSrc) {
+    try {
+      const im = await new Promise((res, rej) => {
+        const i = new Image(); i.crossOrigin = 'anonymous';
+        i.onload = () => res(i); i.onerror = rej; i.src = chatCh.imageSrc;
+      });
+      x.drawImage(im, W / 2 - 160, 90, 320, 320);
+      drew = true;
+    } catch (e) {}
+  }
+  if (!drew) {
+    x.font = '220px sans-serif'; x.textAlign = 'center';
+    x.fillText(SPECIES_EMOJI[chatCh.species] || '🌟', W / 2, 330);
+  }
+  x.fillStyle = '#4A3B47'; x.textAlign = 'center';
+  x.font = 'bold 44px "Microsoft JhengHei", sans-serif';
+  x.fillText('「', 120, 520);
+  /* 逐字換行（中文） */
+  const chars2 = lastAiReply.slice(0, 60).split('');
+  let line = '', lines = [];
+  chars2.forEach(c => { line += c; if (line.length >= 16) { lines.push(line); line = ''; } });
+  if (line) lines.push(line);
+  x.font = 'bold 52px "Microsoft JhengHei", sans-serif';
+  lines.slice(0, 4).forEach((l, i) => x.fillText(l, W / 2, 560 + i * 78));
+  x.font = 'bold 44px "Microsoft JhengHei", sans-serif';
+  x.fillText('」', W - 120, 560 + Math.min(4, lines.length) * 78);
+  x.fillStyle = col;
+  x.font = 'bold 40px "Microsoft JhengHei", sans-serif';
+  x.fillText('— ' + chatCh.name + '', W / 2, H - 130);
+  x.fillStyle = '#987f8f'; x.font = '30px sans-serif';
+  x.fillText((window.ARP_BRAND ? ARP_BRAND.name + '｜' : '') + 'ar-ip-pets.zeabur.app', W / 2, H - 70);
+  const url = cv.toDataURL('image/jpeg', 0.92);
+  document.getElementById('photo-img').src = url;
+  document.getElementById('btn-photo-dl').href = url;
+  document.getElementById('modal-photo').style.display = 'flex';
+  arpTrack('quote_share', { character: arpSid(chatCh) });
 });
 
 /* 📸 合照：相機畫面 + 3D 角色合成一張圖 */
@@ -801,14 +940,16 @@ async function renderRank() {
   try {
     const slug = arpBrandSlug() || 'demo';
     const r = await fetch(ARP_SUPA_URL + '/rest/v1/arp_scores?brand_slug=eq.' + slug +
-      '&select=nick,exp&order=exp.desc&limit=10',
+      '&select=nick,exp,perfect&order=exp.desc&limit=10',
       { headers: { apikey: ARP_ANON, Authorization: 'Bearer ' + ARP_ANON } });
     const rows = await r.json();
     const medals = ['🥇', '🥈', '🥉'];
     list.innerHTML = rows.length
       ? rows.map((x, i) => '<div class="charrow" style="padding:8px 12px;"><div class="dot" style="background:#FFE06633;font-size:18px;">' +
           (medals[i] || (i + 1)) + '</div><div class="info"><b>' +
-          String(x.nick || '無名英雄').replace(/</g, '&lt;') + '</b></div><b style="color:var(--brand-primary);">' + x.exp + ' EXP</b></div>').join('')
+          String(x.nick || '無名英雄').replace(/</g, '&lt;') + '</b>' +
+          (x.perfect ? '<p style="font-size:11px;color:#987f8f;">🎯 完美餵食 ' + x.perfect + ' 次</p>' : '') +
+          '</div><b style="color:var(--brand-primary);">' + x.exp + ' EXP</b></div>').join('')
       : '<p style="color:#987f8f;font-size:13px;">還沒有人上榜，搶頭香！</p>';
   } catch (e) { list.innerHTML = '<p style="color:#987f8f;font-size:13px;">讀取失敗，稍後再試</p>'; }
 }
@@ -828,7 +969,7 @@ document.getElementById('btn-rank-submit').addEventListener('click', async () =>
       headers: { apikey: ARP_ANON, Authorization: 'Bearer ' + ARP_ANON,
         'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' },
       body: JSON.stringify({ brand_slug: arpBrandSlug() || 'demo', sid: arpSession(),
-        nick: nick, exp: arpExpState().exp })
+        nick: nick, exp: arpExpState().exp, perfect: feedStats().perfect })
     });
     showToast('🏆 成績已上傳！');
     arpTrack('rank_submit', { exp: arpExpState().exp });
@@ -890,6 +1031,22 @@ document.querySelectorAll('[data-close]').forEach(b =>
     setTimeout(() => showToast('🎉 今天是「' + fest.name + '」！夥伴們都戴上帽子慶祝'), 2600);
     arpTrack('festival_day', { name: fest.name });
   }
+  /* AI 聊天預設關閉：品牌後台勾「啟用 AI 聊天」才顯示按鈕（伺服器端也會擋） */
+  window.ARP_CHAT_ON = cfg.chatEnabled === true;
+  if (!window.ARP_CHAT_ON) document.getElementById('btn-chat').style.display = 'none';
+  /* iOS 加入主畫面提示（只提示一次，逛 25 秒後才出現不打擾掃描） */
+  const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const standalone = navigator.standalone || matchMedia('(display-mode: standalone)').matches;
+  if (isIos && !standalone && !localStorage.getItem('arp_a2hs')) {
+    setTimeout(() => {
+      document.getElementById('a2hsbar').style.display = 'block';
+      arpTrack('a2hs_shown', {});
+    }, 25000);
+  }
+  document.getElementById('a2hs-close').addEventListener('click', () => {
+    document.getElementById('a2hsbar').style.display = 'none';
+    localStorage.setItem('arp_a2hs', '1');
+  });
   /* 角色記憶：推算幾天沒來（要在簽到寫入前先讀舊紀錄） */
   let prevCk = null;
   try { prevCk = JSON.parse(localStorage.getItem('arp_checkin_v2')); } catch (e) {}

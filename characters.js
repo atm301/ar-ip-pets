@@ -336,9 +336,11 @@ function arpGachaReveal(accId, title) {
         '@keyframes arpConf{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(90px) rotate(200deg);opacity:0}}';
       document.head.appendChild(st);
     }
+    /* prefers-reduced-motion：跳過搖蛋與所有動畫，直接顯示結果 */
+    const rm = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const ov = document.createElement('div');
     ov.style.cssText = 'position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;';
-    ov.innerHTML = '<div style="font-size:88px;animation:arpEggShake .5s ease-in-out 2;">🥚</div>' +
+    if (!rm) ov.innerHTML = '<div style="font-size:88px;animation:arpEggShake .5s ease-in-out 2;">🥚</div>' +
       '<div style="color:#ffffffcc;font-size:14px;">咦，有東西要出來了…</div>';
     document.body.appendChild(ov);
     const close = () => { try { ov.remove(); } catch (e) {} };
@@ -347,15 +349,15 @@ function arpGachaReveal(accId, title) {
       if (!ov.parentNode) return;
       ov.innerHTML =
         '<div style="position:relative;">' +
-          '<div style="font-size:88px;animation:arpPop .45s ease-out;">' + icon + '</div>' +
-          ['🎉', '✨', '🎊', '✨', '🎉', '💫'].map((c, i) =>
-            '<span style="position:absolute;top:0;left:' + (i * 18 - 40) + 'px;font-size:22px;animation:arpConf .9s ease-out ' + (i * 0.06) + 's forwards;">' + c + '</span>').join('') +
+          '<div style="font-size:88px;' + (rm ? '' : 'animation:arpPop .45s ease-out;') + '">' + icon + '</div>' +
+          (rm ? '' : ['🎉', '✨', '🎊', '✨', '🎉', '💫'].map((c, i) =>
+            '<span style="position:absolute;top:0;left:' + (i * 18 - 40) + 'px;font-size:22px;animation:arpConf .9s ease-out ' + (i * 0.06) + 's forwards;">' + c + '</span>').join('')) +
         '</div>' +
         '<div style="color:#fff;font-weight:700;font-size:18px;text-shadow:0 2px 8px rgba(0,0,0,.6);">獲得「' + name + '」！</div>' +
         '<div style="color:#ffffffaa;font-size:13px;">點一下關閉</div>';
       if (typeof arpSfx === 'function') arpSfx('found');
       if (typeof arpVibrate === 'function') arpVibrate([40, 40, 80]);
-    }, 1100);
+    }, rm ? 0 : 1100);
     setTimeout(close, 5600);
   } catch (e) {}
 }

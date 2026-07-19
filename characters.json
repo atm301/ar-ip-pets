@@ -1,5 +1,6 @@
 {
-  "_說明": "角色設定檔：非工程師直接改這裡的台詞/名字/顏色即可，改完 push 就生效。targetIndex = 產品圖在 targets.mind 的編譯順序（第一張是 0）。species 可選 bunny / bear / chick / image（image 要配 imageSrc）。",
+  "_說明": "角色設定檔：非工程師直接改這裡的台詞/名字/顏色即可，改完 push 就生效。targetIndex = 產品圖在 targets.mind 的編譯順序（第一張是 0）。species 可選 bunny / bear / chick / image（image 要配 imageSrc）。chatEnabled 控制 AI 聊天（預設關閉，品牌後台可開）。",
+  "chatEnabled": false,
   "characters": [
     {
       "id": "mochi",

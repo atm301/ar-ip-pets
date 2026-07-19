@@ -12,12 +12,9 @@ await page.evaluate(() => {
   }));
 });
 await page.reload({ waitUntil: 'domcontentloaded' });
-await page.waitForTimeout(9500); // AR 起 + 8 秒掃不到
-
-// A4 手動召喚按鈕出現 → 開選單 → 召喚第一隻
-const manualVisible = await page.evaluate(() =>
-  document.getElementById('btn-manual').style.display !== 'none');
-assert(manualVisible, '8 秒掃不到應出現手動召喚按鈕');
+// A4 手動召喚按鈕出現（arReady 後 8 秒）→ 開選單 → 召喚第一隻
+await page.waitForFunction(() =>
+  document.getElementById('btn-manual').style.display !== 'none', null, { timeout: 20000 });
 await page.click('#btn-manual');
 const rows = await page.evaluate(() => document.querySelectorAll('#manual-list .charrow').length);
 assert(rows >= 3, '召喚選單應列出角色（得 ' + rows + '）');
@@ -38,18 +35,22 @@ const sc = await page.evaluate(() => {
 });
 if (sc.id === 'mochi') assert(Math.abs(sc.x - 1.27) < 0.03, 'Lv.5 進化縮放（得 ' + sc.x + '）');
 
-// B2 餵食小遊戲：開 → 按 → 收
+// B2+7-1 餵食小遊戲：開 → 首次引導出現 → 空白鍵按下 → 收
 await page.click('#btn-feed');
 await page.waitForTimeout(300);
-assert(await page.evaluate(() => document.getElementById('feedgame').style.display === 'flex'),
-  '餵食應開啟時機小遊戲');
-await page.click('#fg-tap');
+const fg = await page.evaluate(() => ({
+  open: document.getElementById('feedgame').style.display === 'flex',
+  tut: document.getElementById('fg-tut').style.display === 'block'
+}));
+assert(fg.open && fg.tut, '餵食應開小遊戲＋首次手指引導：' + JSON.stringify(fg));
+await page.keyboard.press('Space');
 await page.waitForTimeout(300);
 const fed = await page.evaluate(() => ({
   closed: document.getElementById('feedgame').style.display === 'none',
-  bubble: document.getElementById('bubble').style.display === 'block'
+  bubble: document.getElementById('bubble').style.display === 'block',
+  stats: JSON.parse(localStorage.getItem('arp_feedstats')).total
 }));
-assert(fed.closed && fed.bubble, '按下後應收掉並顯示餵食台詞：' + JSON.stringify(fed));
+assert(fed.closed && fed.bubble && fed.stats === 1, '空白鍵餵食：' + JSON.stringify(fed));
 
 // B4 扭蛋演出
 await page.evaluate(() => arpGachaReveal('hat'));
@@ -58,11 +59,32 @@ assert(await page.evaluate(() =>
   [...document.querySelectorAll('div')].some(d => d.textContent.includes('獲得「'))),
   '扭蛋演出應顯示獲得配件');
 
-// B6 聊天視窗（不打 API）
+// 聊天：預設關閉（按鈕隱藏）
+assert(await page.evaluate(() => document.getElementById('btn-chat').style.display === 'none'),
+  'AI 聊天預設應關閉（按鈕隱藏）');
+
+// 後台開啟聊天（模擬：此裝置自訂設定 chatEnabled=true）→ 按鈕出現、視窗可開、有建議問題
+await page.evaluate(async () => {
+  const cfg = await (await fetch('/characters.json')).json();
+  cfg.chatEnabled = true;
+  localStorage.setItem('arp_custom_chars', JSON.stringify(cfg));
+});
+await page.reload({ waitUntil: 'domcontentloaded' });
+await page.waitForFunction(() =>
+  document.getElementById('btn-manual').style.display !== 'none', null, { timeout: 20000 });
+await page.click('#btn-manual');
+await page.click('#manual-list .charrow');
+await page.waitForTimeout(800);
+assert(await page.evaluate(() => document.getElementById('btn-chat').style.display !== 'none'),
+  '後台開啟後聊天按鈕應出現');
 await page.evaluate(() => { document.querySelectorAll('.modal').forEach(m => m.style.display = 'none'); });
 await page.click('#btn-chat');
-assert(await page.evaluate(() => document.getElementById('modal-chat').style.display === 'flex'),
-  '聊天視窗應開啟');
+const chat = await page.evaluate(() => ({
+  open: document.getElementById('modal-chat').style.display === 'flex',
+  chips: document.querySelectorAll('#chat-chips .chip').length,
+  live: document.getElementById('chat-log').getAttribute('aria-live')
+}));
+assert(chat.open && chat.chips === 3 && chat.live === 'polite', '聊天視窗+快捷鈕+aria：' + JSON.stringify(chat));
 
 assert(errors.length === 0, 'JS 錯誤: ' + errors.join('; '));
 await browser.close();

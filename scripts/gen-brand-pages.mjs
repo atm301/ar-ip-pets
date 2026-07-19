@@ -79,4 +79,18 @@ footer a { color:var(--p); }
   fs.writeFileSync(path.join(OUT, b.slug + '.html'), html);
   console.log('b/' + b.slug + '.html OK（' + chars.length + ' 隻角色）');
 }
+
+/* 5-3 sitemap.xml 一起重生（lastmod 自動帶今天，日期用台灣時間） */
+const today = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
+const urls = [
+  ['/', '1.0'], ['/about.html', '0.9'], ['/targets.html', '0.6'],
+  ...brands.map(b => ['/b/' + b.slug + '.html', '0.8'])
+];
+fs.writeFileSync(path.join(import.meta.dirname, '..', 'sitemap.xml'),
+  '<?xml version="1.0" encoding="UTF-8"?>\n' +
+  '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+  urls.map(([u, p]) =>
+    '  <url><loc>' + SITE + u + '</loc><lastmod>' + today + '</lastmod><priority>' + p + '</priority></url>').join('\n') +
+  '\n</urlset>\n');
+console.log('sitemap.xml OK（lastmod ' + today + '，' + urls.length + ' URLs）');
 console.log('DONE');
