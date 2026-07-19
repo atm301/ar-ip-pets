@@ -619,7 +619,13 @@ document.querySelectorAll('[data-close]').forEach(b =>
       arpTrack('gift_redeem', { item: acc.id, is_new: isNew });
       arpCloudLog('gift_redeem', null, { item: acc.id });
     } else {
-      setTimeout(() => showToast('❓ 序號無效'), 800);
+      const sr = (typeof staminaRedeem === 'function') ? staminaRedeem(giftCode) : null;
+      if (sr) {
+        setTimeout(() => showToast(sr.msg), 800);
+        arpCloudLog('stamina_redeem', null, { code: giftCode, ok: sr.ok });
+      } else {
+        setTimeout(() => showToast('❓ 序號無效'), 800);
+      }
     }
   }
 })();

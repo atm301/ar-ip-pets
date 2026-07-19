@@ -34,6 +34,7 @@ async function arpLoadConfig() {
   DUO_SCRIPTS = cfg.duoScripts || [];
   ACCESSORIES = cfg.accessories || [];
   if (typeof arpSetQuests === 'function' && cfg.quests) arpSetQuests(cfg.quests);
+  if (typeof arpSetStaminaItems === 'function' && cfg.staminaItems) arpSetStaminaItems(cfg.staminaItems);
   // 雲端品牌若沒定義配件，沿用預設三件（序號/等級解鎖機制仍可用）
   if (!ACCESSORIES.length && slug) {
     ACCESSORIES = [

@@ -130,7 +130,14 @@ async function handleCode(text) {
       isNew ? '回夥伴那裡看看牠的新造型！' : '這個序號之前兌換過了。');
     return;
   }
-  showResult('❓', '看不懂這個 QR', '內容：' + text.slice(0, 60) + '…<br>支援：台灣電子發票（左側 QR）、活動序號 QR');
+  // ④ 活力序號（補充活力 / 提升上限）
+  const sr = (typeof staminaRedeem === 'function') ? staminaRedeem(code) : null;
+  if (sr) {
+    arpCloudLog('stamina_redeem', null, { code: code, ok: sr.ok });
+    showResult('⚡', sr.ok ? '活力兌換成功！' : '無法兌換', sr.msg + '<br>到 🗺️ 地圖探索用活力遠征 5 公里外的目標！');
+    return;
+  }
+  showResult('❓', '看不懂這個 QR', '內容：' + text.slice(0, 60) + '…<br>支援：台灣電子發票（左側 QR）、活動序號、活力序號');
 }
 
 function tick() {

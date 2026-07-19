@@ -58,7 +58,7 @@ body { font-family:'Microsoft JhengHei','PingFang TC',sans-serif; }
 <div id="map"></div>
 <div id="topbar"><h1>🗺️ 地圖探索</h1><a class="pill" id="lnk-back" href="index.html">← 回夥伴</a></div>
 <div id="expbar">Lv.1</div>
-<div id="simhint" style="display:none;">🧪 模擬模式：點地圖移動位置</div>
+<div id="simhint" style="display:none;">🧪 模擬模式（僅供測試）：點地圖移動位置</div>
 
 <div id="sheet">
   <div class="big" id="s-icon">👾</div>
@@ -96,8 +96,12 @@ let map, playerMarker, playerPos = null, spawns = [], spawnLayers = {}, activeSp
 
 function expLine() {
   const b = arpExpBar();
-  document.getElementById('expbar').textContent = '玩家 Lv.' + b.level + '｜EXP ' + b.cur + '/100';
+  const st = staminaState();
+  document.getElementById('expbar').textContent =
+    '玩家 Lv.' + b.level + '｜EXP ' + b.cur + '/100｜⚡ ' + st.value + '/' + st.cap;
 }
+setInterval(expLine, 60000); // 活力每小時回 10，定時刷新顯示
+function fmtDist(m) { return m < 1000 ? Math.round(m) + ' 公尺' : (m / 1000).toFixed(1) + ' 公里'; }
 function dist(a, b) {
   const R = 6371000, dLat = (b.lat - a.lat) * Math.PI / 180, dLng = (b.lng - a.lng) * Math.PI / 180;
   const s = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * Math.PI / 180) * Math.cos(b.lat * Math.PI / 180) * Math.sin(dLng / 2) ** 2;
@@ -137,33 +141,84 @@ function renderSpawns() {
     if (done.includes(s.id)) { spawnLayers[s.id] = []; return; }
     const mk = L.marker([s.lat, s.lng], { icon: L.divIcon({ className: 'emoji-pin', html: ICONS[s.type] || '📍', iconSize: [30, 30] }) }).addTo(map);
     const cir = L.circle([s.lat, s.lng], { radius: s.radius, color: '#FF7FA5', weight: 1, fillOpacity: 0.12 }).addTo(map);
+    mk.on('click', () => openSpawnSheet(s)); // 直接點怪（5km 內免費、超過走遠征）
     spawnLayers[s.id] = [mk, cir];
   });
 }
 
+/* 點怪/走近共用的遭遇面板：5km 內免費互動，超過要遠征（⚡ -20） */
+let sheetMode = 'engage';       // engage | done
+let remoteCostPending = 0;
+let dismissedId = null;         // 按「先不要」後，離開該點半徑前不再自動彈出
+function openSpawnSheet(s, auto) {
+  if (doneList().includes(s.id)) return;
+  // 自動彈出絕不搶走使用者正在看的面板（遠征確認/勝利/戰敗畫面）
+  if (auto && document.getElementById('sheet').style.display === 'block') return;
+  activeSpawn = s; sheetMode = 'engage';
+  const d = playerPos ? dist(playerPos, s) : Infinity;
+  remoteCostPending = d > REMOTE_RANGE_M ? REMOTE_COST : 0;
+  const st = staminaState();
+  document.getElementById('s-icon').textContent = ICONS[s.type] || '📍';
+  document.getElementById('s-name').textContent = s.name + '（' + fmtDist(d) + '）';
+  const base = s.type === 'monster' ? '有怪物擋路！打贏可以獲得 EXP。' :
+               s.type === 'partner' ? '夥伴在這裡等你，跟牠說話可以領任務。' : '打開看看有什麼！';
+  const goBtn = document.getElementById('s-go');
+  if (remoteCostPending) {
+    document.getElementById('s-desc').innerHTML = base +
+      '<br>📏 距離超過 5 公里，需要<b>遠征</b>。⚡ 活力 ' + st.value + '/' + st.cap +
+      '<br><small>（費用於出發時扣除，逃跑/戰敗不退還）</small>' +
+      (st.value < remoteCostPending
+        ? '<br>（活力不足！每小時回 10、台灣時間每天 08:00 補滿，或掃活力序號立即補充）' : '');
+    goBtn.textContent = (s.type === 'monster' ? '⚔️ 遠征開戰' : s.type === 'partner' ? '💬 遠端呼叫' : '🎁 遠征開箱') +
+      '（⚡-' + remoteCostPending + '）';
+  } else {
+    document.getElementById('s-desc').textContent = base + '（5 公里內，免費互動）';
+    goBtn.textContent = s.type === 'monster' ? '⚔️ 開戰！' : s.type === 'partner' ? '💬 說話' : '🎁 打開';
+  }
+  document.getElementById('sheet').style.display = 'block';
+  if (auto) { arpSfx('found'); arpVibrate([40, 60, 40]); }
+}
 function checkNearby() {
   if (!playerPos) return;
+  // 離開被「先不要」的點的半徑（或它已完成）就解除封印
+  if (dismissedId) {
+    const ds = spawns.find(x => x.id === dismissedId);
+    if (!ds || doneList().includes(dismissedId) || dist(playerPos, ds) > ds.radius) dismissedId = null;
+  }
   const done = doneList();
   const near = spawns.find(s => !done.includes(s.id) && dist(playerPos, s) <= s.radius);
-  const sheet = document.getElementById('sheet');
-  if (!near) { sheet.style.display = 'none'; activeSpawn = null; return; }
-  if (activeSpawn && activeSpawn.id === near.id) return;
-  activeSpawn = near;
-  document.getElementById('s-icon').textContent = ICONS[near.type];
-  document.getElementById('s-name').textContent = near.name;
-  document.getElementById('s-desc').textContent =
-    near.type === 'monster' ? '有怪物擋路！打贏可以獲得 EXP。' :
-    near.type === 'partner' ? '夥伴在這裡等你，跟牠說話可以領任務。' : '打開看看有什麼！';
-  document.getElementById('s-go').textContent =
-    near.type === 'monster' ? '⚔️ 開戰！' : near.type === 'partner' ? '💬 說話' : '🎁 打開';
-  sheet.style.display = 'block';
-  arpSfx('found'); arpVibrate([40, 60, 40]);
+  if (near && near.id !== dismissedId) openSpawnSheet(near, true);
 }
 document.getElementById('s-close').addEventListener('click', () => {
+  dismissedId = activeSpawn ? activeSpawn.id : null;
   document.getElementById('sheet').style.display = 'none';
+  activeSpawn = null;
 });
 document.getElementById('s-go').addEventListener('click', () => {
+  if (sheetMode === 'done') {
+    document.getElementById('sheet').style.display = 'none';
+    activeSpawn = null;
+    return;
+  }
   const s = activeSpawn; if (!s) return;
+  // 費用以「按下當下」的距離為準（面板開著時人可能已走近/走遠）
+  const dNow = playerPos ? dist(playerPos, s) : Infinity;
+  const costNow = dNow > REMOTE_RANGE_M ? REMOTE_COST : 0;
+  if (costNow !== remoteCostPending) { openSpawnSheet(s); return; } // 價格變了→重繪面板讓使用者再確認
+  if (remoteCostPending) {
+    if (!staminaSpend(remoteCostPending)) {
+      arpVibrate(80);
+      const st = staminaState();
+      document.getElementById('s-desc').innerHTML =
+        '⚡ 活力不足（現在 ' + st.value + '/' + st.cap + '，還差 ' + (remoteCostPending - st.value) + ' 點）。' +
+        '<br>每小時回 10 點、台灣時間每天早上 8 點補滿；掃「活力序號」可立即補充（🧾 掃碼頁）。' +
+        '<br>約 ' + staminaNextRegenMin() + ' 分鐘後回下一點。';
+      expLine();
+      return;
+    }
+    arpCloudLog('remote_engage', null, { spawn: s.name, cost: remoteCostPending });
+    expLine();
+  }
   document.getElementById('sheet').style.display = 'none';
   if (s.type === 'monster') startBattle(s);
   else if (s.type === 'partner') partnerTalk(s);
@@ -203,25 +258,12 @@ function finishSpawn(s, event, exp, html) {
   questBump('encounter');
   expLine();
   arpCloudLog(event, null, { spawn: s.name });
-  const sheet = document.getElementById('sheet');
+  sheetMode = 'done';
   document.getElementById('s-icon').textContent = '🎉';
   document.getElementById('s-name').textContent = r.levelUp ? '升級！玩家 Lv.' + r.level : '完成！';
   document.getElementById('s-desc').innerHTML = html;
   document.getElementById('s-go').textContent = '繼續探索';
-  sheet.style.display = 'block';
-  activeSpawn = { id: '__done__' };
-  document.getElementById('s-go').onclick = () => { sheet.style.display = 'none'; document.getElementById('s-go').onclick = null; resetGoBtn(); };
-}
-function resetGoBtn() {
-  const btn = document.getElementById('s-go');
-  const clone = btn.cloneNode(true); btn.parentNode.replaceChild(clone, btn);
-  clone.addEventListener('click', () => {
-    const s = activeSpawn; if (!s || s.id === '__done__') { document.getElementById('sheet').style.display = 'none'; return; }
-    document.getElementById('sheet').style.display = 'none';
-    if (s.type === 'monster') startBattle(s);
-    else if (s.type === 'partner') partnerTalk(s);
-    else openChest(s);
-  });
+  document.getElementById('sheet').style.display = 'block';
 }
 
 /* ---- 回合制遭遇戰 ---- */
@@ -298,12 +340,12 @@ function winBattle() {
 }
 function loseBattle() {
   document.getElementById('battle').style.display = 'none';
+  sheetMode = 'done';
   document.getElementById('s-icon').textContent = '😵';
   document.getElementById('s-name').textContent = '輸了…但沒關係！';
   document.getElementById('s-desc').textContent = '回去多摸摸夥伴提升好感度，攻擊力會變強，再來挑戰！';
   document.getElementById('s-go').textContent = '知道了';
   document.getElementById('sheet').style.display = 'block';
-  activeSpawn = { id: '__done__' };
   B = null;
 }
 document.getElementById('b-atk').addEventListener('click', () => playerTurn(1));
@@ -353,7 +395,7 @@ function setPlayer(latlng, first) {
     setPlayer({ lat: 25.0478, lng: 121.5170 }, true); // 台北車站
     map.on('click', e => setPlayer({ lat: e.latlng.lat, lng: e.latlng.lng }, false));
   }
-  resetGoBtn();
+
 })();
 </script>
 <script>if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js');</script>
