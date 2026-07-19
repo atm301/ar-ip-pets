@@ -412,6 +412,14 @@ document.getElementById('btn-photo-share').addEventListener('click', async () =>
   } catch (e) {}
 });
 
+/* 手機音訊被擋時提示（只提示一次，任何觸碰後自動補播） */
+let _blockedHintShown = false;
+window.ARP_AUDIO_BLOCKED = function () {
+  if (_blockedHintShown) return;
+  _blockedHintShown = true;
+  showToast('🔊 點一下畫面，角色就會開口說話');
+};
+
 /* 音效/語音開關 */
 const btnSound = document.getElementById('btn-sound');
 function renderSoundBtn() { btnSound.textContent = arpSoundOn() ? '🔊' : '🔇'; }

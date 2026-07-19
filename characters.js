@@ -244,9 +244,50 @@ if ('speechSynthesis' in window) {
   _pickVoice();
   speechSynthesis.onvoiceschanged = _pickVoice;
 }
+/* 行動瀏覽器音訊解鎖：首次觸碰前不准出聲 → 記住被擋的台詞，解鎖後補播 */
+let _audioUnlocked = false, _pendingSpeak = null;
+const _voiceBufCache = {};
+let _voiceSrc = null;
+function _unlockAudioOnce() {
+  if (_audioUnlocked) return;
+  _audioUnlocked = true;
+  try { const ctx = _audio(); if (ctx && ctx.state === 'suspended') ctx.resume(); } catch (e) {}
+  try { speechSynthesis.resume(); } catch (e) {}
+  if (_pendingSpeak) {
+    const p = _pendingSpeak; _pendingSpeak = null;
+    setTimeout(() => arpSpeak(p.ch, p.text), 60);
+  }
+}
+if (typeof document !== 'undefined') {
+  document.addEventListener('pointerdown', _unlockAudioOnce, { capture: true, once: true });
+  document.addEventListener('touchstart', _unlockAudioOnce, { capture: true, once: true });
+}
+/* 用 WebAudio 播語音檔（iOS 靜音鍵下仍可出聲、與音效共用解鎖狀態） */
+async function _playVoiceUrl(url) {
+  const ctx = _audio();
+  if (!ctx) throw new Error('no ctx');
+  if (ctx.state === 'suspended') {
+    try { await ctx.resume(); } catch (e) {}
+    if (ctx.state === 'suspended') throw new Error('locked');
+  }
+  let buf = _voiceBufCache[url];
+  if (!buf) {
+    const r = await fetch(url);
+    buf = await ctx.decodeAudioData(await r.arrayBuffer());
+    _voiceBufCache[url] = buf;
+  }
+  if (_voiceSrc) { try { _voiceSrc.stop(); } catch (e) {} }
+  const src = ctx.createBufferSource();
+  const g = ctx.createGain(); g.gain.value = 0.95;
+  src.buffer = buf; src.connect(g); g.connect(ctx.destination);
+  src.start();
+  _voiceSrc = src;
+}
 function arpSpeakStop() {
+  try { if (_voiceSrc) { _voiceSrc.stop(); _voiceSrc = null; } } catch (e) {}
   try { if (_voiceAudio) { _voiceAudio.pause(); _voiceAudio = null; } } catch (e) {}
   try { speechSynthesis.cancel(); } catch (e) {}
+  _pendingSpeak = null;
 }
 function _speakTTS(ch, text) {
   if (!('speechSynthesis' in window)) return;
@@ -268,11 +309,12 @@ function arpSpeak(ch, text) {
     const vid = ch && (ch.baseId || ch.id);
     const url = vid && VOICE_MAP && VOICE_MAP[vid] && VOICE_MAP[vid][text];
     if (url) {
-      arpSpeakStop();
-      _voiceAudio = new Audio(url);
-      _voiceAudio.volume = 0.95;
-      const p = _voiceAudio.play();
-      if (p && p.catch) p.catch(function () {}); // autoplay 未解鎖時靜默（首次手勢後即可）
+      try { speechSynthesis.cancel(); } catch (e) {}
+      _playVoiceUrl(url).catch(() => {
+        // 音訊未解鎖（手機首次手勢前）→ 記住這句，解鎖後補播 + 提示使用者
+        _pendingSpeak = { ch: ch, text: text };
+        if (typeof window.ARP_AUDIO_BLOCKED === 'function') window.ARP_AUDIO_BLOCKED();
+      });
       return;
     }
   } catch (e) {}
