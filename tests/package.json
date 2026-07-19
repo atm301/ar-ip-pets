@@ -1,0 +1,6 @@
+{
+  "name": "ar-ip-pets-tests",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "node run.mjs" }
+}
