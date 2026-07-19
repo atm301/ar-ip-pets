@@ -118,6 +118,7 @@ body { font-family:'Microsoft JhengHei','PingFang TC',sans-serif; overflow:hidde
   </div>
 </div>
 <div id="custombar">🛠️ 自訂模式（此裝置） <button id="btn-clear-custom">清除</button></div>
+<div id="offlinebar" style="display:none;position:fixed;z-index:21;top:58px;left:50%;transform:translateX(-50%);background:#5c4d00;color:#ffe066;font-size:12px;padding:6px 14px;border-radius:999px;">📴 離線模式：展示與互動功能仍可使用</div>
 
 <div id="scanbox"><i></i><i></i><i></i><i></i><i class="beam"></i></div>
 
@@ -180,6 +181,7 @@ body { font-family:'Microsoft JhengHei','PingFang TC',sans-serif; overflow:hidde
 
 <script src="cloud.js"></script>
 <script src="characters.js"></script>
+<script src="arp-visual.js"></script>
 <script src="quests.js"></script>
 <script>
 const bubble = document.getElementById('bubble');
@@ -203,7 +205,9 @@ function showBubble(who, line, meta, ctaUrl, chForVoice) {
   bubble.querySelector('.meta').textContent = meta || '';
   const cta = bubble.querySelector('.cta');
   if (ctaUrl) {
-    const u = ctaUrl + (ctaUrl.includes('?') ? '&' : '?') + 'utm_source=ar-ip-pets&utm_medium=ar';
+    /* 3-2 歸因：utm_content 帶匿名 session id，品牌 GA 可對照訂單 */
+    const u = ctaUrl + (ctaUrl.includes('?') ? '&' : '?') +
+      'utm_source=ar-ip-pets&utm_medium=ar&utm_content=' + arpSession();
     document.getElementById('cta-link').href = u;
     cta.style.display = 'block';
   } else cta.style.display = 'none';
@@ -215,6 +219,8 @@ function showBubble(who, line, meta, ctaUrl, chForVoice) {
 }
 document.getElementById('cta-link').addEventListener('click', () => {
   arpTrack('outbound_click', { link_url: document.getElementById('cta-link').href });
+  arpCloudLog('outbound_click', currentChar() ? arpSid(currentChar()) : null,
+    { url: document.getElementById('cta-link').href.split('?')[0] });
 });
 
 /* 1-3 掃描狀態機：ready → scanning 提示；久掃不到 → 加強提示 */
@@ -414,6 +420,14 @@ document.getElementById('btn-photo-share').addEventListener('click', async () =>
     }
   } catch (e) {}
 });
+
+/* 1-3 離線提示（SW 已能離線供應，讓使用者知道不是壞掉） */
+function renderOffline() {
+  document.getElementById('offlinebar').style.display = navigator.onLine ? 'none' : 'block';
+}
+window.addEventListener('online', renderOffline);
+window.addEventListener('offline', renderOffline);
+renderOffline();
 
 /* 手機音訊被擋時提示（只提示一次，任何觸碰後自動補播） */
 let _blockedHintShown = false;

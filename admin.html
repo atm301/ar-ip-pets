@@ -354,7 +354,7 @@ $('btn-add-ch').addEventListener('click', () => {
 });
 function exportConfig() {
   brand = { name: $('brand-name').value.trim(), story: $('brand-story').value.trim() };
-  return { brand, characters: chars, duoScripts: DUO_SCRIPTS, accessories: ACCESSORIES,
+  return { _v: 1, brand, characters: chars, duoScripts: DUO_SCRIPTS, accessories: ACCESSORIES,
     spawns: spawns, quests: brandQuests };
 }
 
@@ -544,7 +544,7 @@ $('btn-upload-mind').addEventListener('click', async () => {
   cloudStatus('上傳中…');
   const path = activeBrand.id + '/targets.mind';
   const { error } = await sb.storage.from('arp-assets')
-    .upload(path, new Blob([state.mindBuffer]), { upsert: true, contentType: 'application/octet-stream' });
+    .upload(path, new Blob([state.mindBuffer]), { upsert: true, contentType: 'application/octet-stream', cacheControl: '86400' });
   if (error) { cloudStatus(''); return toast('❌ 上傳失敗：' + error.message); }
   const { data } = sb.storage.from('arp-assets').getPublicUrl(path);
   const url = data.publicUrl + '?v=' + Date.now();

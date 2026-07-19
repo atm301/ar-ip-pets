@@ -3,7 +3,7 @@
 const CACHE = 'arp-v4';
 const PRECACHE = [
   './', 'index.html', 'demo.html', 'map.html', 'scan.html', 'targets.html',
-  'characters.js', 'characters.json', 'cloud.js', 'quests.js',
+  'characters.js', 'arp-visual.js', 'characters.json', 'cloud.js', 'quests.js',
   'libs/aframe.min.js', 'libs/mindar-image-aframe.prod.js',
   'libs/leaflet.js', 'libs/leaflet.css', 'libs/jsQR.js',
   'targets/targets.mind',

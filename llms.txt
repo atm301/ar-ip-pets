@@ -1,0 +1,28 @@
+# AR IP 夥伴（ar-ip-pets）
+
+> 多品牌 Web AR IP 角色互動平台：消費者用手機瀏覽器掃描品牌產品，喚醒該產品專屬的 3D IP 角色，進行對話（AI 生成聲線的自然語音）、餵食養成、配飾換裝、每日任務、掃發票領獎勵，以及基於 GPS 的地圖探索遭遇戰。免安裝 App。
+
+## 平台能力
+
+- 影像辨識：MindAR（自然圖片辨識，掃產品照片/包裝，非 QR code）
+- 角色：品牌後台上傳 2D 角色圖自動可動化，或用內建 3D 角色；支援 GLB 3D 模型
+- 語音：VoxCPM 聲線設計批次合成，每隻角色有專屬自然語音
+- 遊戲化：好感度、玩家等級、每日任務、簽到、配飾紙娃娃、活力值（台灣時間每天 08:00 補滿、每小時回 10）、地圖遭遇戰
+- 商業：產品小知識置入、UTM+session 歸因外連、台灣電子發票 QR 掃描認證消費、序號兌換商品
+
+## 主要頁面
+
+- https://ar-ip-pets.zeabur.app/ ：AR 掃描主頁（?b=品牌代號 載入各品牌）
+- https://ar-ip-pets.zeabur.app/about.html ：平台介紹與常見問題
+- https://ar-ip-pets.zeabur.app/demo.html ：免鏡頭展示模式
+- https://ar-ip-pets.zeabur.app/map.html ：地圖探索
+- https://ar-ip-pets.zeabur.app/admin.html ：品牌自助後台（上傳產品圖→編譯辨識→設定角色→發佈）
+
+## 已上線品牌示範
+
+- 原味千尋（daintiest.net，手作乳酪絲）：/?b=daintiest，角色：金絲、蜜蜜、烏將軍
+- GoddessBuy 神力好物（goddessbuy.com.tw，女性保健）：/?b=goddessbuy，角色：蘿絲、檸檬歐膩、祖嬤
+
+## 技術
+
+靜態站（Zeabur）+ Supabase（多租戶品牌設定/Storage/事件分析），MindAR + A-Frame，全函式庫 self-host。

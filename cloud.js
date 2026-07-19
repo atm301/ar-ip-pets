@@ -26,15 +26,29 @@ async function arpFetchBrand(slug) {
   return rows[0] || null;
 }
 
+/* 匿名 session id（3-2 歸因用：事件與 CTA 外連都帶同一個 sid） */
+function arpSession() {
+  try {
+    let sid = localStorage.getItem('arp_sid');
+    if (!sid) {
+      sid = 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      localStorage.setItem('arp_sid', sid);
+    }
+    return sid;
+  } catch (e) { return 's0'; }
+}
+
 /* 匿名事件上報（品牌主後台看數據用；失敗靜默） */
 function arpCloudLog(event, characterId, meta) {
   try {
+    const m = meta || {};
+    m.sid = arpSession();
     fetch(ARP_SUPA_URL + '/rest/v1/arp_events', {
       method: 'POST',
       headers: { apikey: ARP_ANON, Authorization: 'Bearer ' + ARP_ANON,
         'Content-Type': 'application/json', Prefer: 'return=minimal' },
       body: JSON.stringify({ brand_slug: arpBrandSlug() || 'demo', event: event,
-        character_id: characterId || null, meta: meta || {} })
+        character_id: characterId || null, meta: m })
     }).catch(function () {});
   } catch (e) {}
 }

@@ -71,12 +71,12 @@ body { font-family:'Microsoft JhengHei','PingFang TC',sans-serif; }
 <div id="battle"><div class="card">
   <div>👾 <span id="m-name"></span>（Lv.<span id="m-lv"></span>）</div>
   <div class="fighter" id="m-emoji">👾</div>
-  <div class="hpwrap"><div class="hp" id="m-hp"></div></div>
+  <div class="hpwrap" id="m-hpwrap" role="progressbar" aria-label="敵方生命值" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div class="hp" id="m-hp"></div></div>
   <div style="font-size:12px;opacity:.8;">敵方 HP</div>
   <div class="fighter" id="p-emoji">🐰</div>
-  <div class="hpwrap"><div class="hp" id="p-hp"></div></div>
+  <div class="hpwrap" id="p-hpwrap" role="progressbar" aria-label="我方生命值" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div class="hp" id="p-hp"></div></div>
   <div style="font-size:12px;opacity:.8;">我方 HP（夥伴好感度越高攻擊越強）</div>
-  <div id="blog">遭遇戰開始！</div>
+  <div id="blog" role="status" aria-live="polite">遭遇戰開始！</div>
   <div id="bbtns">
     <button class="pill primary" id="b-atk">⚔️ 攻擊</button>
     <button class="pill" id="b-ult">💥 必殺（限 1 次）</button>
@@ -292,10 +292,14 @@ function startBattle(s) {
 }
 function updateHp() {
   const m = document.getElementById('m-hp'), p = document.getElementById('p-hp');
-  m.style.width = Math.max(0, B.mHp / B.mMax * 100) + '%';
-  p.style.width = Math.max(0, B.pHp / B.pMax * 100) + '%';
-  m.className = 'hp' + (B.mHp / B.mMax < 0.35 ? ' low' : '');
-  p.className = 'hp' + (B.pHp / B.pMax < 0.35 ? ' low' : '');
+  const mPct = Math.max(0, Math.round(B.mHp / B.mMax * 100));
+  const pPct = Math.max(0, Math.round(B.pHp / B.pMax * 100));
+  m.style.width = mPct + '%';
+  p.style.width = pPct + '%';
+  m.className = 'hp' + (mPct < 35 ? ' low' : '');
+  p.className = 'hp' + (pPct < 35 ? ' low' : '');
+  document.getElementById('m-hpwrap').setAttribute('aria-valuenow', mPct);
+  document.getElementById('p-hpwrap').setAttribute('aria-valuenow', pPct);
 }
 function hitAnim(id) {
   const e = document.getElementById(id);
