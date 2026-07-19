@@ -36,6 +36,7 @@ fbq('init','4979950938896019');fbq('track','PageView');
 </script>
 <!-- 2-3 self-host，不吃 CDN -->
 <script src="libs/aframe.min.js"></script>
+<script src="libs/aframe-extras.min.js"></script>
 <script src="libs/mindar-image-aframe.prod.js"></script>
 <style>
 :root { --brand-primary:#FF7FA5; --brand-dark:#4A3B47; --brand-bg:#FFF7FA; }
@@ -144,10 +145,25 @@ body { font-family:'Microsoft JhengHei','PingFang TC',sans-serif; overflow:hidde
     <h2>📖 角色圖鑑</h2>
     <div id="book-list"></div>
     <button class="pill primary closebtn" id="btn-duo" style="display:none;">✨ 播放隱藏劇情</button>
+    <button class="pill closebtn" id="btn-rank">🏆 排行榜</button>
     <a class="pill closebtn" id="lnk-map" href="map.html" style="display:block;text-align:center;text-decoration:none;line-height:28px;">🗺️ 地圖探索（找夥伴、打怪物）</a>
     <a class="pill closebtn" id="lnk-scan" href="scan.html" style="display:block;text-align:center;text-decoration:none;line-height:28px;">🧾 掃發票／序號領裝備</a>
     <a class="pill closebtn" id="lnk-targets" href="targets.html" style="display:block;text-align:center;text-decoration:none;line-height:28px;">🃏 開啟示範圖（給另一台裝置掃）</a>
     <button class="pill closebtn" data-close>關閉</button>
+  </div>
+</div>
+
+<!-- 1-1 首次教學蓋板 -->
+<div class="modal" id="modal-tut" style="z-index:60;">
+  <div class="card" style="text-align:center;">
+    <h2 style="text-align:center;">歡迎來到 AR 夥伴的世界！</h2>
+    <div class="charrow"><div class="dot" style="background:#FFE06633;font-size:26px;">📷</div>
+      <div class="info"><b>1. 掃描產品</b><p>把產品（或示範圖）放進畫面框框裡，角色就會跳出來</p></div></div>
+    <div class="charrow"><div class="dot" style="background:#FFC0CB33;font-size:26px;">👆</div>
+      <div class="info"><b>2. 點角色互動</b><p>摸摸牠、餵牠吃東西，牠會說話也會做動作，好感度越高越親密</p></div></div>
+    <div class="charrow"><div class="dot" style="background:#C89F6E33;font-size:26px;">📅</div>
+      <div class="info"><b>3. 完成每日任務</b><p>右上角 📅 看任務，賺 EXP、解鎖配飾，還能去 🗺️ 地圖探索打怪</p></div></div>
+    <button class="pill primary closebtn" id="btn-tut-go">開始探索！</button>
   </div>
 </div>
 
@@ -158,6 +174,20 @@ body { font-family:'Microsoft JhengHei','PingFang TC',sans-serif; overflow:hidde
     <img id="photo-img" src="" alt="AR 合照" style="width:100%;border-radius:12px;">
     <button class="pill primary closebtn" id="btn-photo-share">📤 分享</button>
     <a class="pill closebtn" id="btn-photo-dl" download="ar-pet.jpg" style="display:block;text-decoration:none;text-align:center;line-height:28px;">⬇️ 下載</a>
+    <button class="pill closebtn" data-close>關閉</button>
+  </div>
+</div>
+
+<!-- 9-1 排行榜 -->
+<div class="modal" id="modal-rank">
+  <div class="card">
+    <h2>🏆 排行榜 <span id="rank-brand" style="font-size:13px;color:#987f8f;font-weight:400;"></span></h2>
+    <div class="row" style="display:flex;gap:8px;">
+      <input type="text" id="rank-nick" maxlength="20" placeholder="你的暱稱"
+        style="flex:1;border:1px solid #ecd8e0;border-radius:10px;padding:9px 12px;font-size:14px;font-family:inherit;">
+      <button class="pill primary" id="btn-rank-submit" style="min-height:40px;">上傳成績</button>
+    </div>
+    <div id="rank-list" style="margin-top:12px;"></div>
     <button class="pill closebtn" data-close>關閉</button>
   </div>
 </div>
@@ -249,6 +279,12 @@ function onFound(ch) {
   questBump('scan'); updateQuestBadge();
   arpCloudLog('scan', arpSid(ch));
   arpSfx('found'); arpVibrate([30, 40, 60]);
+  /* 1-2 鎖定框亮起 */
+  const fr = document.getElementById('frame-' + ch.id);
+  if (fr) {
+    fr.setAttribute('visible', 'true');
+    setTimeout(() => fr.setAttribute('visible', 'false'), 1800);
+  }
   const rootEl = document.getElementById('char-' + ch.id);
   if (rootEl) {
     rootEl.removeAttribute('animation__spawn');
@@ -312,7 +348,8 @@ function talk(ch) {
   charReact(ch.id, 'tap');
   arpSfx('pop'); arpVibrate(40);
   showBubble(ch.name, pickLine(ch.taps), '💗 好感度 ' + aff + '（Lv.' + arpLevel(aff) + '）', '', ch);
-  arpTrack('character_tap', { character: ch.id, affection: aff });
+  arpTrack('character_tap', { character: arpSid(ch), affection: aff });
+  arpCloudLog('character_tap', arpSid(ch));
   questBump('talk'); updateQuestBadge();
   /* 紙娃娃雛形：好感度 Lv.3 解鎖圍巾，角色外觀直接改變 */
   if (arpLevel(aff) >= 3 && arpUnlockItem('scarf')) {
@@ -510,6 +547,51 @@ document.getElementById('btn-book').addEventListener('click', () => {
   arpTrack('open_book', { collected: arpCollectedCount() });
 });
 
+/* ---- 9-1 排行榜（匿名 sid + 暱稱，品牌各自一榜） ---- */
+async function renderRank() {
+  document.getElementById('rank-brand').textContent =
+    window.ARP_BRAND ? ARP_BRAND.name : '示範品牌';
+  document.getElementById('rank-nick').value = localStorage.getItem('arp_nick') || '';
+  const list = document.getElementById('rank-list');
+  list.innerHTML = '<p style="color:#987f8f;font-size:13px;">載入中…</p>';
+  try {
+    const slug = arpBrandSlug() || 'demo';
+    const r = await fetch(ARP_SUPA_URL + '/rest/v1/arp_scores?brand_slug=eq.' + slug +
+      '&select=nick,exp&order=exp.desc&limit=10',
+      { headers: { apikey: ARP_ANON, Authorization: 'Bearer ' + ARP_ANON } });
+    const rows = await r.json();
+    const medals = ['🥇', '🥈', '🥉'];
+    list.innerHTML = rows.length
+      ? rows.map((x, i) => '<div class="charrow" style="padding:8px 12px;"><div class="dot" style="background:#FFE06633;font-size:18px;">' +
+          (medals[i] || (i + 1)) + '</div><div class="info"><b>' +
+          String(x.nick || '無名英雄').replace(/</g, '&lt;') + '</b></div><b style="color:var(--brand-primary);">' + x.exp + ' EXP</b></div>').join('')
+      : '<p style="color:#987f8f;font-size:13px;">還沒有人上榜，搶頭香！</p>';
+  } catch (e) { list.innerHTML = '<p style="color:#987f8f;font-size:13px;">讀取失敗，稍後再試</p>'; }
+}
+document.getElementById('btn-rank').addEventListener('click', () => {
+  document.getElementById('modal-book').style.display = 'none';
+  document.getElementById('modal-rank').style.display = 'flex';
+  renderRank();
+  arpTrack('open_rank', {});
+});
+document.getElementById('btn-rank-submit').addEventListener('click', async () => {
+  const nick = document.getElementById('rank-nick').value.trim().slice(0, 20);
+  if (!nick) { showToast('先取個暱稱吧！'); return; }
+  localStorage.setItem('arp_nick', nick);
+  try {
+    await fetch(ARP_SUPA_URL + '/rest/v1/arp_scores', {
+      method: 'POST',
+      headers: { apikey: ARP_ANON, Authorization: 'Bearer ' + ARP_ANON,
+        'Content-Type': 'application/json', Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify({ brand_slug: arpBrandSlug() || 'demo', sid: arpSession(),
+        nick: nick, exp: arpExpState().exp })
+    });
+    showToast('🏆 成績已上傳！');
+    arpTrack('rank_submit', { exp: arpExpState().exp });
+    renderRank();
+  } catch (e) { showToast('上傳失敗，稍後再試'); }
+});
+
 /* 隱藏劇情 */
 let duoToken = 0;
 async function playDuo(idA, idB) {
@@ -555,13 +637,23 @@ document.querySelectorAll('[data-close]').forEach(b =>
   renderSoundBtn();
   updateBookBadge();
   updateQuestBadge();
-  /* 每日簽到：今天第一次開 → +10 EXP */
-  if (localStorage.getItem('arp_checkin') !== arpToday()) {
-    localStorage.setItem('arp_checkin', arpToday());
-    const r = arpAddExp(10);
-    setTimeout(() => showToast('📅 每日簽到 +10 EXP！' + (r.levelUp ? ' 升到 Lv.' + r.level + '！' : '')), 1200);
-    arpTrack('daily_checkin', { level: r.level });
-    arpCloudLog('daily_checkin');
+  /* 1-1 首次進入教學（點「開始」同時解鎖音訊，一石二鳥） */
+  if (!localStorage.getItem('arp_tut_done')) {
+    document.getElementById('modal-tut').style.display = 'flex';
+    document.getElementById('btn-tut-go').addEventListener('click', () => {
+      localStorage.setItem('arp_tut_done', '1');
+      document.getElementById('modal-tut').style.display = 'none';
+      arpTrack('tutorial_done', {});
+    });
+  }
+  /* 9-2 每日簽到（連續天數階梯獎勵：3天+10、5天+20、7天+50+隨機配飾） */
+  const ck = arpDailyCheckin();
+  if (ck) {
+    setTimeout(() => showToast('📅 連續簽到第 ' + ck.streak + ' 天 +' + ck.exp + ' EXP！' +
+      (ck.itemGranted ? ' 🎁 獲得限定配飾！' : '') + (ck.levelUp ? ' 升到 Lv.' + ck.level + '！' : '')), 1200);
+    if (ck.itemGranted) CHARACTERS.forEach(applyAccessories);
+    arpTrack('daily_checkin', { streak: ck.streak });
+    arpCloudLog('daily_checkin', null, { streak: ck.streak });
   }
   /* 品牌模式：標題換品牌名、站內連結帶 ?b= */
   if (window.ARP_BRAND) {
@@ -601,6 +693,24 @@ document.querySelectorAll('[data-close]').forEach(b =>
     charRoot.setAttribute('position', (0.55 * side) + ' -0.35 0');
     charRoot.setAttribute('rotation', '0 ' + (-15 * side) + ' 0');
     anchor.appendChild(charRoot);
+    /* 1-2 辨識鎖定框：目標圖四角的 L 形框，辨識瞬間亮起 1.8 秒 */
+    const frame = document.createElement('a-entity');
+    frame.id = 'frame-' + ch.id;
+    frame.setAttribute('visible', 'false');
+    const FL = 0.16, FT = 0.022, FC = '#FF7FA5';
+    [[-0.5, 0.5, 1, -1], [0.5, 0.5, -1, -1], [-0.5, -0.5, 1, 1], [0.5, -0.5, -1, 1]].forEach(co => {
+      const h = document.createElement('a-box');
+      h.setAttribute('position', (co[0] + co[2] * FL / 2) + ' ' + co[1] + ' 0');
+      h.setAttribute('width', FL); h.setAttribute('height', FT); h.setAttribute('depth', 0.004);
+      h.setAttribute('color', FC);
+      frame.appendChild(h);
+      const v = document.createElement('a-box');
+      v.setAttribute('position', co[0] + ' ' + (co[1] + co[3] * FL / 2) + ' 0');
+      v.setAttribute('width', FT); v.setAttribute('height', FL); v.setAttribute('depth', 0.004);
+      v.setAttribute('color', FC);
+      frame.appendChild(v);
+    });
+    anchor.appendChild(frame);
     sceneEl.appendChild(anchor);
     anchor.addEventListener('targetFound', () => onFound(ch));
     anchor.addEventListener('targetLost', () => onLost(ch));

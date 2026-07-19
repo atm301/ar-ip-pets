@@ -1,10 +1,10 @@
 /* AR IP 夥伴 Service Worker — 靜態資源 cache-first、設定檔 network-first
  * 部署有大改時 bump CACHE 版本 */
-const CACHE = 'arp-v4';
+const CACHE = 'arp-v5';
 const PRECACHE = [
   './', 'index.html', 'demo.html', 'map.html', 'scan.html', 'targets.html',
   'characters.js', 'arp-visual.js', 'characters.json', 'cloud.js', 'quests.js',
-  'libs/aframe.min.js', 'libs/mindar-image-aframe.prod.js',
+  'libs/aframe.min.js', 'libs/aframe-extras.min.js', 'libs/mindar-image-aframe.prod.js',
   'libs/leaflet.js', 'libs/leaflet.css', 'libs/jsQR.js',
   'targets/targets.mind',
   'codex/images/items/acc-hat.webp', 'codex/images/items/acc-glasses.webp',

@@ -171,6 +171,16 @@ th, td { text-align:left; padding:8px 10px; border-bottom:1px solid #f5dfe8; }
   <p class="help">各產品在<b>這台裝置</b>被掃到的次數。全站數據請看
   <a href="https://analytics.google.com/" target="_blank" rel="noopener">GA4</a>（事件：character_discovered、character_tap、collect_second、product_fact_shown、outbound_click）。</p>
   <table id="stats-table"><thead><tr><th>角色 / 產品</th><th>掃描次數</th><th>好感度</th><th>餵食</th></tr></thead><tbody></tbody></table>
+  <div id="charts" style="display:none;">
+    <h2>近 14 天掃描趨勢</h2>
+    <canvas id="ch-daily" width="880" height="180" style="width:100%;background:#fffafc;border-radius:10px;"></canvas>
+    <h2>各角色掃描數</h2>
+    <canvas id="ch-chars" width="880" height="160" style="width:100%;background:#fffafc;border-radius:10px;"></canvas>
+    <h2>互動漏斗（掃描 → 互動 → 點擊產品連結）</h2>
+    <canvas id="ch-funnel" width="880" height="140" style="width:100%;background:#fffafc;border-radius:10px;"></canvas>
+    <h2>🏆 排行榜前 10</h2>
+    <div id="rank-admin"></div>
+  </div>
   <div class="row" style="margin-top:12px;">
     <button class="btn ghost" id="btn-clear-state">🗑️ 清除此裝置遊戲進度</button>
   </div>
@@ -303,6 +313,8 @@ function renderChars() {
         Object.keys(SPECIES).map(k => '<option value="' + k + '"' + (ch.species === k ? ' selected' : '') + '>' + SPECIES[k] + '</option>').join('') +
       '</select></div>' +
       '<div><label>產品連結（角色會附「了解產品」按鈕）</label><input type="url" data-f="productUrl" data-i="' + i + '" value="' + (ch.productUrl || '') + '"></div>' +
+      '<div><label>3D 模型網址（GLB，選填，會蓋過外型；Tripo/Meshy 產出可直接貼）</label><input type="url" data-f="modelUrl" data-i="' + i + '" value="' + (ch.modelUrl || '') + '"></div>' +
+      '<div><label>模型縮放（預設 0.5；模型太大/太小時調）</label><input type="text" data-f="modelScale" data-i="' + i + '" value="' + (ch.modelScale || '') + '"></div>' +
       '</div>' +
       '<div data-2d="' + i + '" style="display:' + (ch.species === 'image' ? 'block' : 'none') + ';">' +
       '<label>2D 角色圖（去背 PNG）→ 自動可動化</label>' +
@@ -328,6 +340,7 @@ $('ch-list').addEventListener('input', async e => {
   const ch = chars[i];
   if (['greet','taps','feeds','facts'].includes(f)) ch[f] = e.target.value.split('\n').map(s => s.trim()).filter(Boolean);
   else if (f === 'pitch' || f === 'rate') { ch.voice = ch.voice || {}; ch.voice[f] = +e.target.value; }
+  else if (f === 'modelScale') { const n = parseFloat(e.target.value); if (n > 0) ch.modelScale = n; else delete ch.modelScale; }
   else if (f === 'imageSrc') {
     const file = e.target.files[0]; if (!file) return;
     ch.imageSrc = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(file); });
@@ -565,22 +578,75 @@ $('btn-publish').addEventListener('click', async () => {
   toast(to ? '🚀 已發佈！顧客可以掃了' : '已取消發佈');
 });
 
-/* 數據分頁：有選品牌時加載雲端事件統計 */
+/* ---------- 3-1 手刻圖表（免依賴） ---------- */
+const CHART_C = { bar: '#FF7FA5', grid: '#f0dbe3', text: '#987f8f' };
+function drawBars(cv, labels, values, horizontal) {
+  const x = cv.getContext('2d');
+  x.clearRect(0, 0, cv.width, cv.height);
+  const max = Math.max(1, ...values);
+  x.font = '13px sans-serif';
+  if (horizontal) {
+    const rowH = Math.min(34, (cv.height - 10) / values.length);
+    values.forEach((v, i) => {
+      const y = 8 + i * rowH;
+      const w = (cv.width - 240) * v / max;
+      x.fillStyle = CHART_C.bar; x.fillRect(150, y, Math.max(3, w), rowH - 10);
+      x.fillStyle = CHART_C.text; x.textAlign = 'right'; x.fillText(labels[i], 142, y + rowH / 2 + 2);
+      x.textAlign = 'left'; x.fillText(String(v), 156 + w, y + rowH / 2 + 2);
+    });
+  } else {
+    const bw = (cv.width - 40) / values.length;
+    values.forEach((v, i) => {
+      const h = (cv.height - 44) * v / max;
+      x.fillStyle = CHART_C.bar;
+      x.fillRect(24 + i * bw + 3, cv.height - 24 - h, bw - 6, Math.max(2, h));
+      x.fillStyle = CHART_C.text; x.textAlign = 'center';
+      x.fillText(labels[i], 24 + i * bw + bw / 2, cv.height - 8);
+      if (v) x.fillText(String(v), 24 + i * bw + bw / 2, cv.height - 30 - h);
+    });
+  }
+}
+/* 數據分頁：有選品牌時加載雲端事件統計 + 圖表 + 排行榜 */
 const _renderStatsLocal = renderStats;
 renderStats = async function () {
   _renderStatsLocal();
   if (!activeBrand || !me) return;
   const { data, error } = await sb.from('arp_events')
-    .select('event, character_id').eq('brand_slug', activeBrand.slug)
-    .order('created_at', { ascending: false }).limit(2000);
+    .select('event, character_id, created_at').eq('brand_slug', activeBrand.slug)
+    .order('created_at', { ascending: false }).limit(5000);
   if (error || !data) return;
   const agg = {};
   data.forEach(r => { agg[r.event] = (agg[r.event] || 0) + 1; });
   const tb = document.querySelector('#stats-table tbody');
   const tr = document.createElement('tr');
-  tr.innerHTML = '<td colspan="4" style="background:#fff4e6;"><b>☁️ 雲端（' + activeBrand.slug + '，近 2000 筆）</b><br>' +
+  tr.innerHTML = '<td colspan="4" style="background:#fff4e6;"><b>☁️ 雲端（' + activeBrand.slug + '，近 5000 筆）</b><br>' +
     Object.keys(agg).sort().map(k => k + '：' + agg[k]).join('｜') + '</td>';
   tb.appendChild(tr);
+  /* 圖表 */
+  $('charts').style.display = 'block';
+  const days = [], counts = [];
+  for (let i = 13; i >= 0; i--) {
+    const d = new Date(Date.now() + 8 * 3600e3 - i * 24 * 3600e3);
+    const key = d.toISOString().slice(0, 10);
+    days.push(key.slice(5));
+    counts.push(data.filter(r => r.event === 'scan' && r.created_at.slice(0, 10) === key).length);
+  }
+  drawBars($('ch-daily'), days, counts, false);
+  const byChar = {};
+  data.forEach(r => { if (r.event === 'scan' && r.character_id) byChar[r.character_id] = (byChar[r.character_id] || 0) + 1; });
+  const names = Object.keys(byChar).map(id => {
+    const c = chars.find(x => x.id === id); return c ? c.name : id;
+  });
+  drawBars($('ch-chars'), names.length ? names : ['（無資料）'], Object.values(byChar).length ? Object.values(byChar) : [0], true);
+  drawBars($('ch-funnel'), ['掃描', '互動(摸/餵)', '點產品連結'],
+    [agg.scan || 0, (agg.character_tap || 0) + (agg.character_feed || 0), agg.outbound_click || 0], true);
+  /* 排行榜 */
+  const { data: rows } = await sb.from('arp_scores').select('nick, exp')
+    .eq('brand_slug', activeBrand.slug).order('exp', { ascending: false }).limit(10);
+  $('rank-admin').innerHTML = (rows && rows.length)
+    ? rows.map((x, i) => '<div class="imgcard"><div class="inf">' + (i + 1) + '. <b>' +
+        String(x.nick || '').replace(/</g, '&lt;') + '</b>　' + x.exp + ' EXP</div></div>').join('')
+    : '<p class="help">還沒有玩家上榜</p>';
 };
 
 refreshAuthUI();

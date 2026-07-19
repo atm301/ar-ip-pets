@@ -21,6 +21,17 @@ function buildCharacter(ch) {
     animation: 'property: position; from: 0 0 0; to: 0 0.06 0; dir: alternate; dur: 1200; loop: true; easing: easeInOutSine'
   }, root);
 
+  // 8-3 GLB 3D 模型（Tripo/Meshy 產出或自備；含骨骼動畫用 animation-mixer 自動播放）
+  if (ch.modelUrl) {
+    const sc = ch.modelScale || 0.5;
+    const m = el('a-entity', { position: '0 0 0', class: 'clickable',
+      scale: sc + ' ' + sc + ' ' + sc }, bob);
+    m.setAttribute('gltf-model', 'url(' + ch.modelUrl + ')');
+    if (window.AFRAME && AFRAME.components['animation-mixer']) {
+      m.setAttribute('animation-mixer', 'clip: ' + (ch.modelClip || '*'));
+    }
+    return root;
+  }
   // 後台上傳的 2D 角色圖 → 2.5D 可動看板（浮動 + 跳躍 + 點擊擠壓都共用）
   if (ch.species === 'image' && ch.imageSrc) {
     el('a-image', { src: ch.imageSrc, position: '0 0.45 0', width: '0.9', height: '0.9',
@@ -186,7 +197,7 @@ function charReact(id, kind) {
   const pool = REACT_POOL[kind] || REACT_POOL.tap;
   const ch = charById(id);
   let name = pool[Math.floor(Math.random() * pool.length)];
-  if (ch && ch.species === 'image' && IMG_UNSUPPORTED.includes(name)) name = 'squash';
+  if (ch && (ch.species === 'image' || ch.modelUrl) && IMG_UNSUPPORTED.includes(name)) name = 'squash';
   return charAct(id, name);
 }
 /* 待機隨機動作 + 眨眼。gate() 回 false 時暫停（AR 頁角色不在鏡頭裡就不動，省電） */
@@ -197,13 +208,13 @@ function charAnimStart(ch, gate) {
   (function idleLoop() {
     _idleT[id] = setTimeout(() => {
       if (!document.hidden && g() && Date.now() >= (_busy[id] || 0)) {
-        const pool = IDLE_POOL[ch.species] || IDLE_POOL.image;
+        const pool = ch.modelUrl ? IDLE_POOL.image : (IDLE_POOL[ch.species] || IDLE_POOL.image);
         charAct(id, pool[Math.floor(Math.random() * pool.length)]);
       }
       idleLoop();
     }, 3200 + Math.random() * 4200);
   })();
-  if (ch.species !== 'image') {
+  if (ch.species !== 'image' && !ch.modelUrl) {
     (function blinkLoop() {
       _blinkT[id] = setTimeout(() => {
         if (!document.hidden && g()) _swing(_part(id, 'eyes'), 'scale', [0, -0.9, 0], 80, 2, 'linear');

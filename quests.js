@@ -182,6 +182,32 @@ function staminaRedeem(code) {
   return { ok: true, msg: '⚡ 活力 +' + it.amount + '（目前 ' + v + '）' };
 }
 
+/* ---------- 9-2 每日簽到 streak（連續天數階梯獎勵，第 7 天送隨機未擁有配飾） ---------- */
+function arpDailyCheckin() {
+  const today = arpToday();
+  let s = null;
+  try { s = JSON.parse(localStorage.getItem('arp_checkin_v2')); } catch (e) {}
+  // 舊版單日 key 遷移：今天已用舊機制簽過就不重複發
+  if (!s && localStorage.getItem('arp_checkin') === today) {
+    s = { last: today, streak: 1 };
+    localStorage.setItem('arp_checkin_v2', JSON.stringify(s));
+    return null;
+  }
+  if (s && s.last === today) return null;
+  const yesterday = twDateStr(new Date(twNow().getTime() - 24 * 3600e3));
+  const streak = (s && s.last === yesterday) ? s.streak + 1 : 1;
+  localStorage.setItem('arp_checkin_v2', JSON.stringify({ last: today, streak: streak }));
+  let exp = 10;
+  if (streak >= 7) exp += 50; else if (streak >= 5) exp += 20; else if (streak >= 3) exp += 10;
+  const r = arpAddExp(exp);
+  let itemGranted = null;
+  if (streak === 7 && typeof arpUnlockItem === 'function' && typeof ACCESSORIES !== 'undefined') {
+    const pool = (ACCESSORIES || []).map(a => a.id).filter(id => !arpItems().includes(id));
+    if (pool.length) { itemGranted = pool[Math.floor(Math.random() * pool.length)]; arpUnlockItem(itemGranted); }
+  }
+  return { streak: streak, exp: exp, levelUp: r.levelUp, level: r.level, itemGranted: itemGranted };
+}
+
 /* ---------- EXP / 玩家等級（每 100 EXP 升 1 級） ---------- */
 function arpExpState() {
   try { return JSON.parse(localStorage.getItem('arp_exp')) || { exp: 0 }; } catch (e) { return { exp: 0 }; }
