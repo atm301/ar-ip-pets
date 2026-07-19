@@ -321,6 +321,45 @@ function arpSpeak(ch, text) {
 
 
 
+/* ---------- 扭蛋開啟演出（配飾獲得共用：寶箱/戰利品/簽到/任務） ---------- */
+const ARP_ACC_ICON = { hat: '🎩', glasses: '👓', scarf: '🧣', crown: '👑', bow: '🎀', backpack: '🎒' };
+function arpGachaReveal(accId, title) {
+  try {
+    const name = title || ((ACCESSORIES.find(a => a.id === accId) || {}).name) || '神秘配件';
+    const icon = ARP_ACC_ICON[accId] || '🎁';
+    if (!document.getElementById('arp-gacha-css')) {
+      const st = document.createElement('style');
+      st.id = 'arp-gacha-css';
+      st.textContent =
+        '@keyframes arpEggShake{0%,100%{transform:rotate(0)}20%{transform:rotate(-14deg)}40%{transform:rotate(12deg)}60%{transform:rotate(-9deg)}80%{transform:rotate(6deg)}}' +
+        '@keyframes arpPop{0%{transform:scale(.2);opacity:0}60%{transform:scale(1.25)}100%{transform:scale(1);opacity:1}}' +
+        '@keyframes arpConf{0%{transform:translateY(0) rotate(0);opacity:1}100%{transform:translateY(90px) rotate(200deg);opacity:0}}';
+      document.head.appendChild(st);
+    }
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:14px;';
+    ov.innerHTML = '<div style="font-size:88px;animation:arpEggShake .5s ease-in-out 2;">🥚</div>' +
+      '<div style="color:#ffffffcc;font-size:14px;">咦，有東西要出來了…</div>';
+    document.body.appendChild(ov);
+    const close = () => { try { ov.remove(); } catch (e) {} };
+    ov.addEventListener('click', close);
+    setTimeout(() => {
+      if (!ov.parentNode) return;
+      ov.innerHTML =
+        '<div style="position:relative;">' +
+          '<div style="font-size:88px;animation:arpPop .45s ease-out;">' + icon + '</div>' +
+          ['🎉', '✨', '🎊', '✨', '🎉', '💫'].map((c, i) =>
+            '<span style="position:absolute;top:0;left:' + (i * 18 - 40) + 'px;font-size:22px;animation:arpConf .9s ease-out ' + (i * 0.06) + 's forwards;">' + c + '</span>').join('') +
+        '</div>' +
+        '<div style="color:#fff;font-weight:700;font-size:18px;text-shadow:0 2px 8px rgba(0,0,0,.6);">獲得「' + name + '」！</div>' +
+        '<div style="color:#ffffffaa;font-size:13px;">點一下關閉</div>';
+      if (typeof arpSfx === 'function') arpSfx('found');
+      if (typeof arpVibrate === 'function') arpVibrate([40, 40, 80]);
+    }, 1100);
+    setTimeout(close, 5600);
+  } catch (e) {}
+}
+
 function pickLine(arr) { return arr && arr.length ? arr[Math.floor(Math.random() * arr.length)] : ''; }
 function charById(id) { return CHARACTERS.find(c => c.id === id); }
 /* 分身角色（同角色多掃描目標，baseId 指向本尊）：狀態/語音/劇情都歸本尊 */

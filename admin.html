@@ -232,22 +232,84 @@ function scoreLabel(s) {
   if (s >= 5) return ['mid', '🤏 普通（可用，建議選圖案更複雜的面）'];
   return ['bad', '⚠️ 不佳（太素或反光，建議重拍）'];
 }
+/* 自動裁切建議：滑動窗（60% 大小、步進 10%）找特徵最密的區塊。
+ * 大面積純色/反光會稀釋特徵點——只編譯 logo+插畫那塊，辨識率大升 */
+function bestCrop(img) {
+  const W = 200, H = Math.round(200 * img.height / img.width);
+  const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  const cx = cv.getContext('2d');
+  cx.drawImage(img, 0, 0, W, H);
+  const d = cx.getImageData(0, 0, W, H).data;
+  const gray = new Float32Array(W * H);
+  for (let i = 0; i < W * H; i++) gray[i] = d[i*4] * 0.299 + d[i*4+1] * 0.587 + d[i*4+2] * 0.114;
+  // 邊緣圖 → 積分圖（O(1) 查任意窗格的邊緣數）
+  const integ = new Float32Array((W + 1) * (H + 1));
+  for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) {
+    const i = y * W + x;
+    const gx = -gray[i-W-1] - 2*gray[i-1] - gray[i+W-1] + gray[i-W+1] + 2*gray[i+1] + gray[i+W+1];
+    const gy = -gray[i-W-1] - 2*gray[i-W] - gray[i-W+1] + gray[i+W-1] + 2*gray[i+W] + gray[i+W+1];
+    integ[(y + 1) * (W + 1) + (x + 1)] = Math.sqrt(gx*gx + gy*gy) > 120 ? 1 : 0;
+  }
+  for (let y = 1; y <= H; y++) for (let x = 1; x <= W; x++)
+    integ[y * (W + 1) + x] += integ[y * (W + 1) + x - 1] + integ[(y - 1) * (W + 1) + x] - integ[(y - 1) * (W + 1) + x - 1];
+  const sum = (x, y, w, h) =>
+    integ[(y + h) * (W + 1) + (x + w)] - integ[y * (W + 1) + (x + w)] - integ[(y + h) * (W + 1) + x] + integ[y * (W + 1) + x];
+  const overall = sum(0, 0, W, H) / (W * H);
+  if (!overall) return null;
+  const ww = Math.round(W * 0.6), wh = Math.round(H * 0.6), step = Math.round(W * 0.1);
+  let best = null;
+  for (let y = 0; y + wh <= H; y += step) for (let x = 0; x + ww <= W; x += step) {
+    const dens = sum(x, y, ww, wh) / (ww * wh);
+    if (!best || dens > best.dens) best = { x: x / W, y: y / H, w: ww / W, h: wh / H, dens };
+  }
+  if (!best || best.dens < overall * 1.25) return null; // 沒有明顯更好的區塊就別多事
+  const cxr = best.x + best.w / 2, cyr = best.y + best.h / 2;
+  best.where = (cyr < 0.4 ? '上' : cyr > 0.6 ? '下' : '中') + (cxr < 0.4 ? '左' : cxr > 0.6 ? '右' : '央');
+  best.gain = Math.round((best.dens / overall - 1) * 100);
+  return best;
+}
+function renderImgList() {
+  $('img-list').innerHTML = '';
+  state.images.forEach((it, idx) => {
+    const [cls, txt] = scoreLabel(it.score);
+    const div = document.createElement('div');
+    div.className = 'imgcard';
+    div.innerHTML = '<img src="' + it.dataURL + '" alt=""><div class="inf"><b>#' + idx + '（targetIndex: ' + idx + '）</b> ' + it.name +
+      '<br>邊緣密度 ' + it.score + '% → <span class="score ' + cls + '">' + txt + '</span>' +
+      (it.cropped ? '<br>✂️ 已套用建議裁切' :
+        (it.crop ? '<br>💡 偵測到「' + it.crop.where + '」區塊特徵密度高 ' + it.crop.gain + '%' +
+          ' <button class="btn ghost" data-crop="' + idx + '" style="padding:4px 10px;font-size:12px;min-height:30px;">✂️ 套用建議裁切</button>' : '')) +
+      '</div>';
+    $('img-list').appendChild(div);
+  });
+}
+$('img-list').addEventListener('click', async e => {
+  const idx = e.target.dataset.crop;
+  if (idx === undefined) return;
+  const it = state.images[idx];
+  const c = it.crop;
+  const cv = document.createElement('canvas');
+  cv.width = Math.round(it.img.width * c.w); cv.height = Math.round(it.img.height * c.h);
+  cv.getContext('2d').drawImage(it.img,
+    Math.round(it.img.width * c.x), Math.round(it.img.height * c.y), cv.width, cv.height,
+    0, 0, cv.width, cv.height);
+  const url = cv.toDataURL('image/jpeg', 0.92);
+  const img = await new Promise(r => { const im = new Image(); im.onload = () => r(im); im.src = url; });
+  state.images[idx] = { name: it.name, dataURL: url, img, score: qualityScore(img), cropped: true };
+  renderImgList();
+  toast('✂️ 已裁切為特徵最密的區塊，記得重新編譯');
+});
 
 $('file-products').addEventListener('change', async e => {
-  state.images = []; $('img-list').innerHTML = '';
+  state.images = [];
   for (const f of e.target.files) {
     const url = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(f); });
     const img = await new Promise(r => { const im = new Image(); im.onload = () => r(im); im.src = url; });
     const s = qualityScore(img);
-    const [cls, txt] = scoreLabel(s);
-    state.images.push({ name: f.name, dataURL: url, img, score: s });
-    const idx = state.images.length - 1;
-    const div = document.createElement('div');
-    div.className = 'imgcard';
-    div.innerHTML = '<img src="' + url + '" alt=""><div class="inf"><b>#' + idx + '（targetIndex: ' + idx + '）</b> ' + f.name +
-      '<br>邊緣密度 ' + s + '% → <span class="score ' + cls + '">' + txt + '</span></div>';
-    $('img-list').appendChild(div);
+    state.images.push({ name: f.name, dataURL: url, img, score: s,
+      crop: s < 15 ? bestCrop(img) : null }); // 分數已經很高就不必建議裁切
   }
+  renderImgList();
   const ready = state.images.length > 0;
   $('btn-compile').disabled = !ready;
   if (ready) toast('已載入 ' + state.images.length + ' 張，順序 = targetIndex');

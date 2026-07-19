@@ -231,6 +231,27 @@ function charAnimStop(id) {
 /* 相容舊呼叫：開心跳一下 = 互動反應（隨機動作） */
 function charJump(chId) { charReact(chId, 'tap'); }
 
+/* ---------- 好感度進化：Lv.5 變大隻、Lv.10 金色光環（最終型態） ---------- */
+function evoScale(ch) {
+  const st = (arpLoad().collected || {})[arpSid(ch)];
+  const lv = st ? arpLevel(st.affection) : 1;
+  return Math.round(1.1 * (lv >= 10 ? 1.3 : lv >= 5 ? 1.15 : 1) * 100) / 100;
+}
+function applyEvolution(ch) {
+  const root = document.getElementById('char-' + ch.id);
+  if (!root) return;
+  const st = (arpLoad().collected || {})[arpSid(ch)];
+  const lv = st ? arpLevel(st.affection) : 1;
+  root.querySelectorAll('.evo').forEach(n => n.remove());
+  if (lv >= 10) {
+    const bob = root.querySelector('a-entity') || root;
+    const y = ch.species === 'image' ? 1.05 : 0.78;
+    el('a-torus', { class: 'evo', position: '0 ' + y + ' 0', rotation: '80 0 0', radius: '0.16',
+      'radius-tubular': '0.013', color: '#FFD700', opacity: '0.85',
+      animation: 'property: rotation; from: 80 0 0; to: 80 360 0; dur: 5000; loop: true; easing: linear' }, bob);
+  }
+}
+
 /* 把「穿戴中」配件掛到角色身上（可重複呼叫，會先清掉舊的再掛）
  * 用 codex 生成的去背圖做 2.5D 看板；圖載不到時 fallback 幾何 */
 function applyAccessories(ch) {
@@ -266,6 +287,14 @@ function applyAccessories(ch) {
       el('a-torus', { class: 'acc', position: '0 0.4 0', rotation: '90 0 0', radius: '0.13', 'radius-tubular': '0.035', color: '#FF7FA5' }, bob);
     }
   });
+  /* 品牌紀念日彩蛋：頭上沒戴東西的全員戴帽慶祝（視覺限定，不進背包） */
+  if (window.ARP_FESTIVAL && !arpWorn().some(id => (ACC_VISUALS[id] || {}).slot === 'head')) {
+    const v = ACC_VISUALS.hat;
+    const useHead = !isImg && head;
+    el('a-image', { class: 'acc', src: v.img, position: isImg ? v.image : v.headPos,
+      width: v.size, height: v.size, transparent: 'true',
+      material: 'alphaTest: 0.15; side: double' }, useHead ? head : bob);
+  }
 }
 function arpIsCustomMode() { return !!localStorage.getItem('arp_custom_chars') || !!localStorage.getItem('arp_custom_mind'); }
 function arpClearCustom() { localStorage.removeItem('arp_custom_chars'); localStorage.removeItem('arp_custom_mind'); }

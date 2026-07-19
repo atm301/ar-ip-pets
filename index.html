@@ -63,7 +63,10 @@ body { font-family:'Microsoft JhengHei','PingFang TC',sans-serif; overflow:hidde
 #bubble .cta { display:none; margin-top:8px; }
 #bubble .cta a { display:inline-block; background:var(--brand-primary); color:#fff;
   text-decoration:none; font-size:14px; font-weight:700; border-radius:999px; padding:8px 16px; }
-#actions { display:none; gap:10px; }
+#actions { display:none; gap:10px; flex-wrap:wrap; justify-content:center; }
+.chatmsg { max-width:82%; border-radius:14px; padding:9px 13px; font-size:14px; line-height:1.5; }
+.chatmsg.me { align-self:flex-end; background:var(--brand-primary); color:#fff; }
+.chatmsg.ai { align-self:flex-start; background:#fff; color:var(--brand-dark); box-shadow:0 1px 4px rgba(0,0,0,.08); }
 #hint { display:none; background:rgba(0,0,0,.55); color:#fff; font-size:14px;
   border-radius:12px; padding:10px 16px; text-align:center; line-height:1.6; }
 #hint a { color:#fff; }
@@ -131,11 +134,25 @@ body { font-family:'Microsoft JhengHei','PingFang TC',sans-serif; overflow:hidde
     <div class="meta"></div>
     <div class="cta"><a id="cta-link" href="#" target="_blank" rel="noopener">🛍️ 了解產品</a></div>
   </div>
+  <button class="pill" id="btn-manual" style="display:none;">🪄 掃不到？手動召喚</button>
   <div id="actions">
     <button class="pill primary" id="btn-talk">💬 說話</button>
+    <button class="pill" id="btn-chat">🗨️ 聊天</button>
     <button class="pill" id="btn-feed">🍡 餵食</button>
     <button class="pill" id="btn-photo">📸 合照</button>
+    <button class="pill" id="btn-dismiss" style="display:none;">👋 收回</button>
   </div>
+</div>
+
+<!-- 餵食小遊戲：抓時機的按鈕條 -->
+<div id="feedgame" style="display:none;position:fixed;inset:0;z-index:45;background:rgba(0,0,0,.45);align-items:center;justify-content:center;flex-direction:column;gap:18px;">
+  <div style="color:#fff;font-weight:700;font-size:17px;text-shadow:0 2px 8px rgba(0,0,0,.6);">🍡 抓準時機按下去，餵出完美一口！</div>
+  <div id="fg-bar" style="position:relative;width:min(78vw,340px);height:26px;background:rgba(255,255,255,.25);border-radius:999px;">
+    <div style="position:absolute;left:35%;width:30%;top:0;bottom:0;background:rgba(255,212,59,.45);"></div>
+    <div style="position:absolute;left:44%;width:12%;top:0;bottom:0;background:var(--brand-primary);border-radius:6px;"></div>
+    <div id="fg-cursor" style="position:absolute;left:0;top:-3px;width:8px;height:32px;background:#fff;border-radius:4px;box-shadow:0 0 8px #fff;"></div>
+  </div>
+  <button class="pill primary" id="fg-tap" style="min-width:170px;font-size:17px;">餵！</button>
 </div>
 
 <div id="toast" role="status" aria-live="polite"></div>
@@ -209,6 +226,30 @@ body { font-family:'Microsoft JhengHei','PingFang TC',sans-serif; overflow:hidde
   </div>
 </div>
 
+<!-- 掃不到保底：手動召喚 -->
+<div class="modal" id="modal-manual">
+  <div class="card">
+    <h2>🪄 手動召喚夥伴</h2>
+    <p style="font-size:13px;color:#987f8f;margin-bottom:10px;">掃描不順利也沒關係，直接選一隻出來玩！（對準產品掃到的體驗更完整喔）</p>
+    <div id="manual-list"></div>
+    <button class="pill closebtn" data-close>關閉</button>
+  </div>
+</div>
+
+<!-- 角色聊天（AI） -->
+<div class="modal" id="modal-chat">
+  <div class="card" style="display:flex;flex-direction:column;max-height:76vh;">
+    <h2 id="chat-title">🗨️ 聊天</h2>
+    <div id="chat-log" style="flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:8px;min-height:140px;padding:4px 0;"></div>
+    <div style="display:flex;gap:8px;margin-top:10px;">
+      <input id="chat-input" maxlength="100" placeholder="跟牠說點什麼…" autocomplete="off"
+        style="flex:1;border:1px solid #ecd8e0;border-radius:10px;padding:9px 12px;font-size:14px;font-family:inherit;">
+      <button class="pill primary" id="chat-send" style="min-height:40px;">送出</button>
+    </div>
+    <button class="pill closebtn" data-close>關閉</button>
+  </div>
+</div>
+
 <script src="cloud.js"></script>
 <script src="characters.js"></script>
 <script src="arp-visual.js"></script>
@@ -253,13 +294,17 @@ document.getElementById('cta-link').addEventListener('click', () => {
     { url: document.getElementById('cta-link').href.split('?')[0] });
 });
 
-/* 1-3 掃描狀態機：ready → scanning 提示；久掃不到 → 加強提示 */
+/* 1-3 掃描狀態機：ready → scanning 提示；8 秒掃不到 → 手動召喚保底；12 秒 → 加強提示 */
+let manualTimer = null;
 function setScanning(on) {
   scanbox.style.display = on ? 'block' : 'none';
-  clearTimeout(idleTimer);
+  clearTimeout(idleTimer); clearTimeout(manualTimer);
   if (on) {
     hint.style.display = 'block';
     hint.innerHTML = '📷 把<b>產品圖</b>放進框框裡<br><a href="targets.html" target="_blank">沒有示範圖？點我開啟</a>';
+    manualTimer = setTimeout(() => {
+      if (activeIds.length === 0) document.getElementById('btn-manual').style.display = 'inline-block';
+    }, 8000);
     idleTimer = setTimeout(() => {
       if (activeIds.length === 0) {
         hint.innerHTML = '🤔 掃不到嗎？試試：<br>1️⃣ 距離 20～30 公分 2️⃣ 避免反光和昏暗<br>3️⃣ 圖要攤平、完整入鏡<br><a href="targets.html" target="_blank">開啟示範圖測試</a>';
@@ -268,10 +313,69 @@ function setScanning(on) {
     }, 12000);
   } else {
     hint.style.display = 'none';
+    document.getElementById('btn-manual').style.display = 'none';
   }
 }
 
+/* ---- 掃不到保底：手動召喚（把角色暫掛到鏡頭前，收回時放回辨識錨點） ---- */
+let manualId = null;
+const anchorOf = {};
+function _clearAnimBase(elm) {
+  ['baseposition', 'baserotation', 'basescale'].forEach(k => delete elm.dataset[k]);
+}
+function manualSummon(ch) {
+  if (manualId) manualDismiss(true);
+  const rootEl = document.getElementById('char-' + ch.id);
+  const cam = document.querySelector('a-camera');
+  if (!rootEl || !cam) return;
+  manualId = ch.id;
+  cam.appendChild(rootEl);
+  _clearAnimBase(rootEl);
+  rootEl.setAttribute('position', '0 -0.42 -1.25');
+  rootEl.setAttribute('rotation', '0 0 0');
+  document.getElementById('modal-manual').style.display = 'none';
+  document.getElementById('btn-dismiss').style.display = 'inline-block';
+  arpTrack('manual_summon', { character: arpSid(ch) });
+  arpCloudLog('manual_summon', arpSid(ch));
+  onFound(ch);
+}
+function manualDismiss(silent) {
+  if (!manualId) return;
+  const ch = charById(manualId);
+  const rootEl = document.getElementById('char-' + manualId);
+  const anchor = anchorOf[manualId];
+  if (rootEl && anchor) {
+    anchor.appendChild(rootEl);
+    _clearAnimBase(rootEl);
+    const side = ch.targetIndex % 2 === 0 ? 1 : -1;
+    rootEl.setAttribute('position', (0.55 * side) + ' -0.35 0');
+    rootEl.setAttribute('rotation', '0 ' + (-15 * side) + ' 0');
+  }
+  document.getElementById('btn-dismiss').style.display = 'none';
+  manualId = null;
+  if (!silent && ch) onLost(ch);
+}
+document.getElementById('btn-dismiss').addEventListener('click', () => manualDismiss(false));
+document.getElementById('btn-manual').addEventListener('click', () => {
+  const list = document.getElementById('manual-list');
+  list.innerHTML = '';
+  CHARACTERS.filter(c => !c.hideInBook).forEach(ch => {
+    const row = document.createElement('div');
+    row.className = 'charrow';
+    row.style.cursor = 'pointer';
+    const icon = (ch.species === 'image' && ch.imageSrc)
+      ? '<img src="' + ch.imageSrc + '" alt="">' : (SPECIES_EMOJI[ch.species] || '🌟');
+    row.innerHTML = '<div class="dot" style="background:' + (ch.colors ? ch.colors.body : '#eee') + '33">' + icon + '</div>' +
+      '<div class="info"><b>' + ch.name + '</b><p>' + ch.product + '</p></div><span>▶️</span>';
+    row.addEventListener('click', () => manualSummon(ch));
+    list.appendChild(row);
+  });
+  document.getElementById('modal-manual').style.display = 'flex';
+  arpTrack('manual_open', {});
+});
+
 function onFound(ch) {
+  if (manualId && manualId !== ch.id) manualDismiss(true); // 真的掃到目標 → 收回手動召喚的
   if (!activeIds.includes(ch.id)) activeIds.push(ch.id);
   setScanning(false);
   actions.style.display = 'flex';
@@ -287,10 +391,11 @@ function onFound(ch) {
   }
   const rootEl = document.getElementById('char-' + ch.id);
   if (rootEl) {
+    const S = evoScale(ch); // 好感度進化：Lv.5 起變大隻
     rootEl.removeAttribute('animation__spawn');
     rootEl.setAttribute('animation__spawn',
-      'property: scale; from: 0.01 0.01 0.01; to: 1.1 1.1 1.1; dur: 550; easing: easeOutBack');
-    setTimeout(() => rootEl.setAttribute('scale', '1.1 1.1 1.1'), 700);
+      'property: scale; from: 0.01 0.01 0.01; to: ' + S + ' ' + S + ' ' + S + '; dur: 550; easing: easeOutBack');
+    setTimeout(() => rootEl.setAttribute('scale', S + ' ' + S + ' ' + S), 700);
   }
   /* 登場後打招呼動作（防抖：追蹤閃爍重觸發不連發，5 秒內只打一次招呼） */
   clearTimeout(greetTimers[ch.id]);
@@ -313,7 +418,7 @@ function onFound(ch) {
     if (n === CHARACTERS.length) arpTrack('collect_all', {});
   }
   /* 打招呼講完 → 停 1.3 秒 → 才送產品小知識（不互相蓋台） */
-  const greetLine = pickLine(ch.greet);
+  const greetLine = specialGreet(ch) || pickLine(ch.greet);
   showBubble(ch.name, greetLine, isNew ? '✨ 新夥伴加入圖鑑！' : '', '', null);
   clearTimeout(factTimer);
   arpSpeakSeq(ch, greetLine).then(() => {
@@ -357,18 +462,79 @@ function talk(ch) {
     CHARACTERS.forEach(applyAccessories);
     arpTrack('item_unlock', { item: 'scarf' });
   }
+  checkEvo(ch);
 }
-function feed(ch) {
-  ch = ch || currentChar(); if (!ch) return;
+/* 好感度跨過 Lv.5 / Lv.10 → 進化演出（變大 + 光環） */
+function checkEvo(ch) {
+  const st = arpLoad().collected[arpSid(ch)];
+  if (!st) return;
+  const lv = arpLevel(st.affection);
+  let m = {};
+  try { m = JSON.parse(localStorage.getItem('arp_evo')) || {}; } catch (e) {}
+  const prev = m[arpSid(ch)] || 1;
+  if ((lv >= 5 && prev < 5) || (lv >= 10 && prev < 10)) {
+    m[arpSid(ch)] = lv;
+    localStorage.setItem('arp_evo', JSON.stringify(m));
+    const S = evoScale(ch);
+    const rootEl = document.getElementById('char-' + ch.id);
+    if (rootEl) {
+      rootEl.removeAttribute('animation__spawn');
+      rootEl.setAttribute('animation__spawn',
+        'property: scale; to: ' + S + ' ' + S + ' ' + S + '; dur: 900; easing: easeOutElastic');
+    }
+    applyEvolution(ch);
+    arpSfx('found'); arpVibrate([50, 50, 120]);
+    showToast(lv >= 10 ? '🌟 ' + ch.name + ' 進化到最終型態！獲得金色光環' : '🌟 ' + ch.name + ' 進化了！變得更大隻更黏你');
+    setTimeout(() => charReact(ch.id, 'celebrate'), 950);
+    arpTrack('evolution', { character: arpSid(ch), lv: lv });
+    arpCloudLog('evolution', arpSid(ch), { lv: lv });
+  }
+}
+/* 餵食（perfect=時機小遊戲按中紅心：好感加倍 + 慶祝動作） */
+function doFeed(ch, perfect, prefix) {
+  if (!ch) return;
   arpFeed(arpSid(ch));
+  if (perfect) arpAffection(arpSid(ch), 2);
   charReact(ch.id, 'feed');
-  arpSfx('yum'); arpVibrate([30, 30, 30]);
+  if (perfect) setTimeout(() => charReact(ch.id, 'celebrate'), 900);
+  arpSfx('yum'); arpVibrate(perfect ? [30, 30, 30, 30, 80] : [30, 30, 30]);
   const s = arpLoad().collected[arpSid(ch)];
-  showBubble(ch.name, pickLine(ch.feeds), '🍡 已餵食 ' + s.fed + ' 次｜💗 好感度 ' + s.affection, '', ch);
-  arpTrack('character_feed', { character: ch.id });
+  showBubble(ch.name, pickLine(ch.feeds),
+    (prefix ? prefix + '｜' : '') + '🍡 已餵食 ' + s.fed + ' 次｜💗 好感度 ' + s.affection, '', ch);
+  arpTrack('character_feed', { character: ch.id, perfect: !!perfect });
   questBump('feed'); updateQuestBadge();
   arpCloudLog('character_feed', ch.id);
+  checkEvo(ch);
 }
+/* 餵食小遊戲：光標 0.9 秒來回跑，按在紅心區=完美 */
+let fgRaf = null, fgT0 = 0, fgTimeout = null;
+const fgEl = document.getElementById('feedgame');
+function feedGamePos() {
+  const p = ((performance.now() - fgT0) / 900) % 2;
+  return p < 1 ? p : 2 - p;
+}
+function feedGameStart() {
+  const ch = currentChar(); if (!ch) return;
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { doFeed(ch, false, ''); return; }
+  fgEl.style.display = 'flex';
+  fgT0 = performance.now();
+  const cur = document.getElementById('fg-cursor');
+  (function loop() {
+    cur.style.left = 'calc(' + (feedGamePos() * 100) + '% - 4px)';
+    fgRaf = requestAnimationFrame(loop);
+  })();
+  clearTimeout(fgTimeout);
+  fgTimeout = setTimeout(() => feedGameEnd(null), 6000);
+}
+function feedGameEnd(x) {
+  cancelAnimationFrame(fgRaf); clearTimeout(fgTimeout);
+  fgEl.style.display = 'none';
+  const perfect = x !== null && Math.abs(x - 0.5) <= 0.06;
+  const good = x !== null && Math.abs(x - 0.5) <= 0.15;
+  doFeed(currentChar(), perfect, perfect ? '🎯 完美一口' : good ? '👍 差一點就完美' : '');
+  arpTrack('feed_game', { perfect: perfect });
+}
+document.getElementById('fg-tap').addEventListener('click', () => feedGameEnd(feedGamePos()));
 
 /* ---- 每日任務 UI ---- */
 function updateQuestBadge() {
@@ -406,15 +572,93 @@ document.getElementById('quest-list').addEventListener('click', e => {
   if (q) {
     arpSfx('found'); arpVibrate([40, 40, 80]);
     activeIds.forEach(cid => charReact(cid, 'celebrate'));
-    showToast('🎉 任務完成！+' + q.exp + ' EXP' + (q.item ? '，獲得新配件！' : ''));
-    if (q.item) CHARACTERS.forEach(applyAccessories);
+    showToast('🎉 任務完成！+' + q.exp + ' EXP');
+    if (q.item) { CHARACTERS.forEach(applyAccessories); arpGachaReveal(q.item); }
     arpTrack('quest_claim', { quest: id });
     arpCloudLog('quest_claim', null, { quest: id });
     renderQuests(); updateQuestBadge();
   }
 });
 document.getElementById('btn-talk').addEventListener('click', () => talk());
-document.getElementById('btn-feed').addEventListener('click', () => feed());
+document.getElementById('btn-feed').addEventListener('click', () => feedGameStart());
+
+/* ---- 角色記憶＋時間彩蛋：久別 > 連續報到 > 深夜，一場 session 每隻只講一次
+ * 動態台詞沒有預生成音檔，自動退回 Web Speech 唸出 ---- */
+const _memGreeted = {};
+const MEM_LINES = {
+  miss: ['你 {n} 天沒來看我了耶…我每天都有乖乖等你喔！', '哇，終於等到你了！{n} 天不見，有沒有想我？'],
+  streak: ['連續第 {n} 天見面！你是我最好的朋友了啦。', '第 {n} 天報到！這麼有毅力，獎勵你一個抱抱。'],
+  night: ['呼哇…這麼晚了還來看我，摸完要早點睡喔。', '（揉眼睛）我剛剛差點睡著…但看到你就醒了！']
+};
+function specialGreet(ch) {
+  const sid = arpSid(ch);
+  if (_memGreeted[sid]) return null;
+  const m = window.ARP_MEMORY || {};
+  const h = twNow().getUTCHours();
+  let line = null;
+  if (m.daysAway >= 3) line = pickLine(MEM_LINES.miss).replace('{n}', m.daysAway);
+  else if (m.streak >= 3) line = pickLine(MEM_LINES.streak).replace('{n}', m.streak);
+  else if (h >= 22 || h < 6) line = pickLine(MEM_LINES.night);
+  if (line) _memGreeted[sid] = true;
+  return line;
+}
+
+/* ---- 角色聊天（AI）：訊息走 Linode 代理呼叫 Gemini，回覆用語音唸出 ---- */
+const ARP_CHAT_API = 'https://atmarketing.tw/arp-chat/chat';
+let chatCh = null, chatHist = [], chatBusy = false;
+function appendChat(role, text) {
+  const log = document.getElementById('chat-log');
+  const d = document.createElement('div');
+  d.className = 'chatmsg ' + role;
+  d.textContent = text;
+  log.appendChild(d);
+  log.scrollTop = log.scrollHeight;
+  return d;
+}
+document.getElementById('btn-chat').addEventListener('click', () => {
+  const ch = currentChar(); if (!ch) return;
+  if (!chatCh || arpSid(chatCh) !== arpSid(ch)) {
+    chatHist = [];
+    document.getElementById('chat-log').innerHTML = '';
+  }
+  chatCh = ch;
+  document.getElementById('chat-title').textContent = '🗨️ 跟' + ch.name + '聊天';
+  if (!chatHist.length) appendChat('ai', pickLine(ch.taps) || '想聊什麼呢？');
+  document.getElementById('modal-chat').style.display = 'flex';
+  arpTrack('chat_open', { character: arpSid(ch) });
+});
+async function sendChat() {
+  const inp = document.getElementById('chat-input');
+  const msg = inp.value.trim();
+  if (!msg || chatBusy || !chatCh) return;
+  chatBusy = true;
+  inp.value = '';
+  appendChat('me', msg);
+  const typing = appendChat('ai', '（思考中…）');
+  try {
+    const r = await fetch(ARP_CHAT_API, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ brand: arpBrandSlug() || 'demo', charId: arpSid(chatCh),
+        message: msg, history: chatHist.slice(-6) })
+    });
+    const j = await r.json();
+    const reply = (j && j.reply) || '（歪頭）訊號怪怪的，再說一次好嗎？';
+    typing.textContent = reply;
+    chatHist.push({ role: 'user', text: msg }, { role: 'model', text: reply });
+    arpSpeak(chatCh, reply);
+    charReact(chatCh.id, 'tap');
+    questBump('talk'); updateQuestBadge();
+    arpTrack('chat_msg', { character: arpSid(chatCh) });
+    arpCloudLog('chat_msg', arpSid(chatCh));
+  } catch (e) {
+    typing.textContent = '（揉眼睛）我剛剛恍神了…再說一次？';
+  }
+  chatBusy = false;
+}
+document.getElementById('chat-send').addEventListener('click', sendChat);
+document.getElementById('chat-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') sendChat();
+});
 
 /* 📸 合照：相機畫面 + 3D 角色合成一張圖 */
 function capturePhoto() {
@@ -633,10 +877,24 @@ document.querySelectorAll('[data-close]').forEach(b =>
 
 /* ---- 啟動：載入設定 → 動態建 AR 場景（支援後台存的自訂 targets） ---- */
 (async function init() {
-  await arpLoadConfig();
+  const cfg = await arpLoadConfig();
   renderSoundBtn();
   updateBookBadge();
   updateQuestBadge();
+  /* 品牌紀念日彩蛋（config.festivals: [{date:'MM-DD', name:'週年慶'}]） */
+  const tn0 = twNow();
+  const mmdd = String(tn0.getUTCMonth() + 1).padStart(2, '0') + '-' + String(tn0.getUTCDate()).padStart(2, '0');
+  const fest = (cfg.festivals || []).find(f => f.date === mmdd);
+  if (fest) {
+    window.ARP_FESTIVAL = fest;
+    setTimeout(() => showToast('🎉 今天是「' + fest.name + '」！夥伴們都戴上帽子慶祝'), 2600);
+    arpTrack('festival_day', { name: fest.name });
+  }
+  /* 角色記憶：推算幾天沒來（要在簽到寫入前先讀舊紀錄） */
+  let prevCk = null;
+  try { prevCk = JSON.parse(localStorage.getItem('arp_checkin_v2')); } catch (e) {}
+  const daysAway = prevCk && prevCk.last
+    ? Math.round((new Date(arpToday()) - new Date(prevCk.last)) / 86400e3) : 0;
   /* 1-1 首次進入教學（點「開始」同時解鎖音訊，一石二鳥） */
   if (!localStorage.getItem('arp_tut_done')) {
     document.getElementById('modal-tut').style.display = 'flex';
@@ -648,10 +906,14 @@ document.querySelectorAll('[data-close]').forEach(b =>
   }
   /* 9-2 每日簽到（連續天數階梯獎勵：3天+10、5天+20、7天+50+隨機配飾） */
   const ck = arpDailyCheckin();
+  window.ARP_MEMORY = { daysAway: daysAway, streak: ck ? ck.streak : (prevCk ? prevCk.streak : 1) };
   if (ck) {
     setTimeout(() => showToast('📅 連續簽到第 ' + ck.streak + ' 天 +' + ck.exp + ' EXP！' +
-      (ck.itemGranted ? ' 🎁 獲得限定配飾！' : '') + (ck.levelUp ? ' 升到 Lv.' + ck.level + '！' : '')), 1200);
-    if (ck.itemGranted) CHARACTERS.forEach(applyAccessories);
+      (ck.levelUp ? ' 升到 Lv.' + ck.level + '！' : '')), 1200);
+    if (ck.itemGranted) {
+      CHARACTERS.forEach(applyAccessories);
+      setTimeout(() => arpGachaReveal(ck.itemGranted), 2400); // 第 7 天限定配飾 → 扭蛋演出
+    }
     arpTrack('daily_checkin', { streak: ck.streak });
     arpCloudLog('daily_checkin', null, { streak: ck.streak });
   }
@@ -669,8 +931,11 @@ document.querySelectorAll('[data-close]').forEach(b =>
   });
 
   sceneEl = document.createElement('a-scene');
+  /* 追蹤調校：warmup 2=更快鎖定；miss 12=手抖不消失；filter 壓低=角色不抖動
+   * maxTrack 品牌可設 1（單品掃描的低階手機 FPS 加倍、追蹤更穩） */
   sceneEl.setAttribute('mindar-image',
-    'imageTargetSrc: ' + arpTargetSrc() + '; maxTrack: 2; uiScanning: no; uiLoading: yes;');
+    'imageTargetSrc: ' + arpTargetSrc() + '; maxTrack: ' + (cfg.maxTrack || 2) +
+    '; warmupTolerance: 2; missTolerance: 12; filterMinCF: 0.0001; filterBeta: 0.001; uiScanning: no; uiLoading: yes;');
   sceneEl.setAttribute('color-space', 'sRGB');
   sceneEl.setAttribute('renderer', 'colorManagement: true, physicallyCorrectLights: true, preserveDrawingBuffer: true');
   sceneEl.setAttribute('vr-mode-ui', 'enabled: false');
@@ -686,10 +951,12 @@ document.querySelectorAll('[data-close]').forEach(b =>
   CHARACTERS.forEach(ch => {
     const anchor = document.createElement('a-entity');
     anchor.setAttribute('mindar-image-target', 'targetIndex: ' + ch.targetIndex);
+    anchorOf[ch.id] = anchor; // 手動召喚收回時要放回這裡
     const charRoot = buildCharacter(ch);
     // 站在產品「旁邊」：偶數 target 站右、奇數站左（產品圖寬=1 單位，±0.55 剛好貼著圖緣）
     const side = ch.targetIndex % 2 === 0 ? 1 : -1;
-    charRoot.setAttribute('scale', '1.1 1.1 1.1');
+    const S0 = evoScale(ch);
+    charRoot.setAttribute('scale', S0 + ' ' + S0 + ' ' + S0);
     charRoot.setAttribute('position', (0.55 * side) + ' -0.35 0');
     charRoot.setAttribute('rotation', '0 ' + (-15 * side) + ' 0');
     anchor.appendChild(charRoot);
@@ -729,8 +996,8 @@ document.querySelectorAll('[data-close]').forEach(b =>
   document.body.appendChild(sceneEl);
   hint.style.display = 'block';
 
-  /* 已解鎖配件掛上角色 */
-  CHARACTERS.forEach(applyAccessories);
+  /* 已解鎖配件掛上角色 + 進化外觀（Lv.10 光環） */
+  CHARACTERS.forEach(ch => { applyAccessories(ch); applyEvolution(ch); });
 
   /* 掃購買憑證/序號兌換配件：?gift=CODE（雛形，正式版走後端驗證防重複兌換） */
   const giftCode = new URLSearchParams(location.search).get('gift');
