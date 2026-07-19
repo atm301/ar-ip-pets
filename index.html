@@ -210,7 +210,8 @@ function showBubble(who, line, meta, ctaUrl, chForVoice) {
   bubble.style.display = 'block';
   if (chForVoice) arpSpeak(chForVoice, line);
   clearTimeout(bubbleTimer);
-  bubbleTimer = setTimeout(() => bubble.style.display = 'none', ctaUrl ? 7000 : 4500);
+  const showMs = Math.max(ctaUrl ? 7000 : 4500, arpEstMs(line) + 900);
+  bubbleTimer = setTimeout(() => bubble.style.display = 'none', showMs);
 }
 document.getElementById('cta-link').addEventListener('click', () => {
   arpTrack('outbound_click', { link_url: document.getElementById('cta-link').href });
@@ -269,17 +270,19 @@ function onFound(ch) {
     }
     if (n === CHARACTERS.length) arpTrack('collect_all', {});
   }
-  showBubble(ch.name, pickLine(ch.greet), isNew ? '✨ 新夥伴加入圖鑑！' : '', '', ch);
-  /* 3-1 打完招呼後送一則產品小知識（有連結就帶 CTA） */
+  /* 打招呼講完 → 停 1.3 秒 → 才送產品小知識（不互相蓋台） */
+  const greetLine = pickLine(ch.greet);
+  showBubble(ch.name, greetLine, isNew ? '✨ 新夥伴加入圖鑑！' : '', '', null);
   clearTimeout(factTimer);
-  if (ch.facts && ch.facts.length) {
+  arpSpeakSeq(ch, greetLine).then(() => {
+    if (!ch.facts || !ch.facts.length) return;
     factTimer = setTimeout(() => {
       if (activeIds.includes(ch.id)) {
         showBubble(ch.name, pickLine(ch.facts), '💡 小知識', ch.productUrl || '', ch);
-        arpTrack('product_fact_shown', { character: ch.id });
+        arpTrack('product_fact_shown', { character: arpSid(ch) });
       }
-    }, 5200);
-  }
+    }, 1300);
+  });
   updateBookBadge();
   if (activeIds.length >= 2 && !duoPlayed) {
     duoPlayed = true;
@@ -494,35 +497,43 @@ document.getElementById('btn-book').addEventListener('click', () => {
 });
 
 /* 隱藏劇情 */
-function playDuo(idA, idB) {
+let duoToken = 0;
+async function playDuo(idA, idB) {
   let script = idA && idB ? duoScriptFor(idA, idB) : null;
   if (!script) {
     const owned = Object.keys(arpLoad().collected);
     script = DUO_SCRIPTS.find(sc => sc.pair.every(p => owned.includes(p)));
   }
   if (!script) return;
+  const token = ++duoToken;
   const box = document.getElementById('duo-lines');
   box.innerHTML = '';
   document.getElementById('modal-book').style.display = 'none';
   document.getElementById('modal-duo').style.display = 'flex';
-  script.lines.forEach(([who, text], i) => {
-    setTimeout(() => {
-      const c = charById(who);
-      const d = document.createElement('div');
-      d.className = 'duoline';
-      d.innerHTML = '<b>' + c.name + '</b>' + text;
-      box.appendChild(d);
-      arpSpeak(c, text);
-    }, i * 2200);
-  });
   questBump('duo'); updateQuestBadge();
   arpTrack('duo_scene', { pair: script.pair.join('_') });
   arpCloudLog('duo_scene', null, { pair: script.pair.join('_') });
+  /* 逐句接力：上一句「講完」才出下一句（關閉視窗即中止） */
+  for (const [who, text] of script.lines) {
+    if (token !== duoToken) return;
+    if (document.getElementById('modal-duo').style.display !== 'flex') return;
+    const c = charById(who);
+    const d = document.createElement('div');
+    d.className = 'duoline';
+    d.innerHTML = '<b>' + c.name + '</b>' + text;
+    box.appendChild(d);
+    await arpSpeakSeq(c, text);
+    await new Promise(r => setTimeout(r, 380));
+  }
 }
 document.getElementById('btn-duo').addEventListener('click', () => playDuo());
 
 document.querySelectorAll('[data-close]').forEach(b =>
-  b.addEventListener('click', e => e.target.closest('.modal').style.display = 'none'));
+  b.addEventListener('click', e => {
+    const m = e.target.closest('.modal');
+    m.style.display = 'none';
+    if (m.id === 'modal-duo') { duoToken++; arpSpeakStop(); } // 關掉劇情就停止語音
+  }));
 
 /* ---- 啟動：載入設定 → 動態建 AR 場景（支援後台存的自訂 targets） ---- */
 (async function init() {

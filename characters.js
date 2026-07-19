@@ -262,8 +262,9 @@ if (typeof document !== 'undefined') {
   document.addEventListener('pointerdown', _unlockAudioOnce, { capture: true, once: true });
   document.addEventListener('touchstart', _unlockAudioOnce, { capture: true, once: true });
 }
-/* 用 WebAudio 播語音檔（iOS 靜音鍵下仍可出聲、與音效共用解鎖狀態） */
-async function _playVoiceUrl(url) {
+/* 用 WebAudio 播語音檔（iOS 靜音鍵下仍可出聲、與音效共用解鎖狀態）
+ * onended：播完（或被停掉）時回呼，給「排隊講話」用 */
+async function _playVoiceUrl(url, onended) {
   const ctx = _audio();
   if (!ctx) throw new Error('no ctx');
   if (ctx.state === 'suspended') {
@@ -280,8 +281,29 @@ async function _playVoiceUrl(url) {
   const src = ctx.createBufferSource();
   const g = ctx.createGain(); g.gain.value = 0.95;
   src.buffer = buf; src.connect(g); g.connect(ctx.destination);
+  if (onended) src.onended = onended;
   src.start();
   _voiceSrc = src;
+}
+/* 依字數估講話時長（音檔缺失/被擋時當 fallback 節奏） */
+function arpEstMs(text) { return Math.min(9000, 800 + (text || '').length * 190); }
+/* 排隊版說話：回傳 Promise，音檔真正播完才 resolve（劇情逐句接力用） */
+function arpSpeakSeq(ch, text) {
+  return new Promise(resolve => {
+    if (!arpSoundOn() || !text) { setTimeout(resolve, arpEstMs(text) * 0.6); return; }
+    let settled = false;
+    const done = () => { if (!settled) { settled = true; clearTimeout(guard); resolve(); } };
+    const guard = setTimeout(done, arpEstMs(text) + 5000); // 安全網：無論如何不卡死
+    const vid = ch && (ch.baseId || ch.id);
+    const url = vid && VOICE_MAP && VOICE_MAP[vid] && VOICE_MAP[vid][text];
+    if (url) {
+      try { speechSynthesis.cancel(); } catch (e) {}
+      _playVoiceUrl(url, done).catch(() => setTimeout(done, arpEstMs(text)));
+      return;
+    }
+    if ('speechSynthesis' in window) _speakTTS(ch, text, done);
+    else setTimeout(done, arpEstMs(text));
+  });
 }
 function arpSpeakStop() {
   try { if (_voiceSrc) { _voiceSrc.stop(); _voiceSrc = null; } } catch (e) {}
@@ -289,8 +311,8 @@ function arpSpeakStop() {
   try { speechSynthesis.cancel(); } catch (e) {}
   _pendingSpeak = null;
 }
-function _speakTTS(ch, text) {
-  if (!('speechSynthesis' in window)) return;
+function _speakTTS(ch, text, onend) {
+  if (!('speechSynthesis' in window)) { if (onend) onend(); return; }
   try {
     speechSynthesis.cancel();
     const clean = text.replace(/（[^）]*）/g, '').replace(/[～!！?？…]+/g, '，');
@@ -300,8 +322,9 @@ function _speakTTS(ch, text) {
     u.pitch = (ch && ch.voice && ch.voice.pitch) || 1.2;
     u.rate = (ch && ch.voice && ch.voice.rate) || 1.05;
     u.volume = 0.9;
+    if (onend) { u.onend = onend; u.onerror = onend; }
     speechSynthesis.speak(u);
-  } catch (e) {}
+  } catch (e) { if (onend) onend(); }
 }
 function arpSpeak(ch, text) {
   if (!arpSoundOn() || !text) return;
